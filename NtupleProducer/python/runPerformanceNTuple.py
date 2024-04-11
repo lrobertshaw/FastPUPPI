@@ -174,21 +174,33 @@ process.outnano = cms.OutputModule("NanoAODOutputModule",
 )
 
 
+def addWideSeededConeJets():    # Add wide cone SC jets
+    process.extraPFStuff.add(process.L1TPFJetsTask)
+    process.l1pfjetTable.jets.scPuppi = cms.InputTag('l1tSCPFL1PuppiEmulator')
 
+def addWideHSCJets():
+    process.extraPFStuff.add(process.L1TPFHistoSeedJetsTask)
+    process.l1pfjetTable.jets.wideHSC = cms.inputTag('l1t17x17HistoSeedsSCPFL1PuppiEmulator')
 
+def addWideHSC3x3Jets()
+    process.extraPFStuff.add(process.L1TPFHisto3x3SeedJetsTask)
+    process.l1pfjetTable.jets.wideHSC3x3 = cms.inputTag('l1t17x17Histo3x3SeedsSCPFL1PuppiEmulator')
+
+def addTrimmedWideHSCJets():
+    process.extraPFStuff.add(process.L1TPFTrimmedHistoSeedJetsTask)
+    process.l1pfjetTable.jets.trimmedWideHSC = cms.inputTag('l1t17x17TrimmedHistoSeedsSCPFL1PuppiEmulator')
+
+def addWide15x15HSC3x3Jets():
+    process.extraPFStuff.add(process.L1TPF15x15Histo3x3SeedJetsTask)
+    process.l1pfjetTable.jets.wide15x15HSC3x3Jets = cms.inputTag('l1t15x15Histo3x3SeedsSCPFL1PuppiEmulator')
 
 
 def addAllJets():
-
-    add9x9HistoConeJets()
-    add9x9HistoConeTrimmedJets()
-    add9x9HistoConeJets3x3()
-    add9x9HistoConeTrimmedJets3x3()
-
-    add7x7HistoConeJets()
-    add7x7HistoConeTrimmedJets()
-    add7x7HistoConeJets3x3()
-    add7x7HistoConeTrimmedJets3x3()
+    addWideSeededConeJets()
+    addWideHSCJets()
+    addWideHSC3x3Jets()
+    addWide15x15HSC3x3Jets()
+    addTrimmedWideHSCJets()
     
 addAllJets()
 
