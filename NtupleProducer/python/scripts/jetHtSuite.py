@@ -173,6 +173,15 @@ def makeEffHist(name, refArr, corrArr, corrThr, xmax, logxbins=None):
 
 from FastPUPPI.NtupleProducer.scripts.respPlots import whats as WHATS
 whats = WHATS + [
+    ('wideConeJetsVarySeedSize', [
+        ("17x17 HSC 1x1 seed", "wideHSC$",             ROOT.kViolet+1, 21, 1.5),
+        ("17x17 HSC 3x3 seed", "wideHSC3x3$", ROOT.kGreen+1, 34, 1.2),
+        ("15x15 HSC 3x3 seed",  "wide15x15HSC3x3Jets$",    ROOT.kGreen+3, 34, 1.1),
+    ]),
+    ('wideConeJets',[
+        ("Trimmed 17x17 HSC 1x1 seed",  "wide15x15HSC3x3Jets$",    ROOT.kGreen+3, 34, 1.1),
+        ("Seeded cone 8", "scPuppi$",    ROOT.kRed+2, 20, 0.9),
+    ]),
     ('oldcomp',[
         ("Calo",      "L1OldCalo",        ROOT.kViolet+2, 20, 1.5),
         ("TK 5s",     "L1TKV5",           ROOT.kRed+1, 24, 1.5),

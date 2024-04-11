@@ -192,7 +192,7 @@ def addTrimmedWideHSCJets():
 
 def addWide15x15HSC3x3Jets():
     process.extraPFStuff.add(process.L1TPF15x15Histo3x3SeedJetsTask)
-    process.l1pfjetTable.jets.wide15x15HSC3x3Jets = cms.InputTag('l1t15x15Histo3x3SeedsSCPFL1PuppiEmulator')
+    process.l1pfjetTable.jets.wide15x15HSC3x3 = cms.InputTag('l1t15x15Histo3x3SeedsSCPFL1PuppiEmulator')
 
 
 def addAllJets():
