@@ -180,19 +180,19 @@ def addWideSeededConeJets():    # Add wide cone SC jets
 
 def addWideHSCJets():
     process.extraPFStuff.add(process.L1TPFHistoSeedJetsTask)
-    process.l1pfjetTable.jets.wideHSC = cms.inputTag('l1t17x17HistoSeedsSCPFL1PuppiEmulator')
+    process.l1pfjetTable.jets.wideHSC = cms.InputTag('l1t17x17HistoSeedsSCPFL1PuppiEmulator')
 
-def addWideHSC3x3Jets()
+def addWideHSC3x3Jets():
     process.extraPFStuff.add(process.L1TPFHisto3x3SeedJetsTask)
-    process.l1pfjetTable.jets.wideHSC3x3 = cms.inputTag('l1t17x17Histo3x3SeedsSCPFL1PuppiEmulator')
+    process.l1pfjetTable.jets.wideHSC3x3 = cms.InputTag('l1t17x17Histo3x3SeedsSCPFL1PuppiEmulator')
 
 def addTrimmedWideHSCJets():
     process.extraPFStuff.add(process.L1TPFTrimmedHistoSeedJetsTask)
-    process.l1pfjetTable.jets.trimmedWideHSC = cms.inputTag('l1t17x17TrimmedHistoSeedsSCPFL1PuppiEmulator')
+    process.l1pfjetTable.jets.trimmedWideHSC = cms.InputTag('l1t17x17TrimmedHistoSeedsSCPFL1PuppiEmulator')
 
 def addWide15x15HSC3x3Jets():
     process.extraPFStuff.add(process.L1TPF15x15Histo3x3SeedJetsTask)
-    process.l1pfjetTable.jets.wide15x15HSC3x3Jets = cms.inputTag('l1t15x15Histo3x3SeedsSCPFL1PuppiEmulator')
+    process.l1pfjetTable.jets.wide15x15HSC3x3Jets = cms.InputTag('l1t15x15Histo3x3SeedsSCPFL1PuppiEmulator')
 
 
 def addAllJets():
