@@ -5,13 +5,15 @@ from PhysicsTools.NanoAOD.common_cff import Var, ExtVar
 import sys
 inputFile = sys.argv[-1]
 print(inputFile)
+nEvents = 10
+
 process = cms.Process("RESP", eras.Phase2C17I13M9)
 
 process.load('Configuration.StandardSequences.Services_cff')
 process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
 process.options   = cms.untracked.PSet( wantSummary = cms.untracked.bool(True), allowUnscheduled = cms.untracked.bool(False) )
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1))
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(nEvents))
 process.MessageLogger.cerr.FwkReport.reportEvery = 1
 
 process.source = cms.Source("PoolSource",
@@ -122,14 +124,15 @@ process.ntuple = cms.EDAnalyzer("ResponseNTuplizer",
 
 process.extraPFStuff.add(process.l1tPFTracksFromL1Tracks)
 
-process.l1pfjetTable = cms.EDProducer("L1PFJetTableProducer",
+process.l1pfjetTable = cms.EDProducer(
+    "L1PFJetTableProducer",
     gen = cms.InputTag("ak4GenJetsNoNu"),
     commonSel = cms.string("pt > 5 && abs(eta) < 5.0"),
     drMax = cms.double(0.2),
     minRecoPtOverGenPt = cms.double(0.1),
     jets = cms.PSet(
         Gen = cms.InputTag("ak4GenJetsNoNu"),
-        Gen_sel = cms.string("pt > 15"),        ########################################################################################################################
+        Gen_sel = cms.string("pt > 15"),
     ),
     moreVariables = cms.PSet(
         nDau = cms.string("numberOfDaughters()"),
@@ -139,8 +142,7 @@ process.l1pfjetTable = cms.EDProducer("L1PFJetTableProducer",
 process.l1pfmetTable = cms.EDProducer("L1PFMetTableProducer",
     genMet = cms.InputTag("genMetTrue"), 
     flavour = cms.string(""),
-    mets = cms.PSet(
-    ),
+    mets = cms.PSet(),
 )
 process.l1pfmetCentralTable = process.l1pfmetTable.clone(genMet = "genMetCentralTrue", flavour = "Central")
 
@@ -148,6 +150,125 @@ monitorPerf("L1Calo", "l1tLayer1:Calo")
 monitorPerf("L1TK",   "l1tLayer1:TK")
 monitorPerf("L1PF",    "l1tLayer1:PF")
 monitorPerf("L1Puppi", "l1tLayer1:Puppi")
+
+
+def addAK8jetsGen():
+
+    #from RecoJets.JetProducers.ak8PFJets_cfi import ak8PFJets
+    from RecoJets.JetProducers.ak8GenJets_cfi import ak8GenJets
+
+    genParticlesForJets = cms.EDProducer("InputGenJetsParticleSelector",
+        src = cms.InputTag("genParticles"),
+        ignoreParticleIDs = cms.vuint32(
+            1000022,
+            1000012, 1000014, 1000016,
+            2000012, 2000014, 2000016,
+            1000039, 5100039,
+            4000012, 4000014, 4000016,
+            9900012, 9900014, 9900016,
+            39),
+        partonicFinalState = cms.bool(False),
+        excludeResonances = cms.bool(False),
+        excludeFromResonancePids = cms.vuint32(12, 13, 14, 16),
+        tausAsJets = cms.bool(False)
+    )
+
+    genParticlesForJetsNoNu = genParticlesForJets.clone()
+    genParticlesForJetsNoNu.ignoreParticleIDs += [12,14,16]
+
+    genJetParticlesTask = cms.Task(genParticlesForJetsNoNu)
+    genJetParticles = cms.Sequence(genJetParticlesTask)
+
+    ak8GenJetsNoNu = ak8GenJets.clone(src = "genParticlesForJets", doAreaFastjet = False)
+    setattr(process, 'ak8GenJetsNoMu', ak8GenJetsNoNu)
+
+    recoAllGenJetsNoNuTask = cms.Task(ak8GenJetsNoNu)
+    setattr(process, 'recoAllGenJetsNoNuTask', recoAllGenJetsNoNuTask)
+
+    process.extraPFStuff.add(process.recoAllGenJetsNoNuTask)
+    #process.extraPFStuff.add(ak8GenJetsNoNu)
+
+    recoAllGenJetsNoNu = cms.Sequence(recoAllGenJetsNoNuTask)
+
+    setattr(process.l1pfjetTable.jets, "AK8Gen", cms.InputTag('ak8GenJetsNoMu'))
+    
+    return None
+
+def addAK8jetsPF():
+
+    from RecoJets.JetProducers.ak8PFJets_cfi import ak8PFJets
+
+    genParticlesForJets = cms.EDProducer("InputGenJetsParticleSelector",
+        src = cms.InputTag("genParticles"),
+        ignoreParticleIDs = cms.vuint32(
+            1000022,
+            1000012, 1000014, 1000016,
+            2000012, 2000014, 2000016,
+            1000039, 5100039,
+            4000012, 4000014, 4000016,
+            9900012, 9900014, 9900016,
+            39),
+        partonicFinalState = cms.bool(False),
+        excludeResonances = cms.bool(False),
+        excludeFromResonancePids = cms.vuint32(12, 13, 14, 16),
+        tausAsJets = cms.bool(False)
+    )
+    genParticlesForJetsNoNu = genParticlesForJets.clone(); genParticlesForJetsNoNu.ignoreParticleIDs += [12,14,16]
+
+    genJetParticlesTask = cms.Task(genParticlesForJetsNoNu)
+    genJetParticles = cms.Sequence(genJetParticlesTask)
+
+    ak8GenJetsNoNu = ak8PFJets.clone(src = "l1tLayer1:PF", doAreaFastjet = False)
+    setattr(process, 'ak8GenJetsNoMu', ak8GenJetsNoNu)
+
+    recoAllGenJetsNoNuTask = cms.Task(ak8GenJetsNoNu)
+    setattr(process, 'recoAllGenJetsNoNuTask', recoAllGenJetsNoNuTask)
+
+    process.extraPFStuff.add(process.recoAllGenJetsNoNuTask)
+    #process.extraPFStuff.add(ak8GenJetsNoNu)
+
+    recoAllGenJetsNoNu = cms.Sequence(recoAllGenJetsNoNuTask)
+
+    setattr(process.l1pfjetTable.jets, "AK8PF", cms.InputTag('ak8GenJetsNoMu'))
+    
+    return None
+
+
+def addJets():
+
+    process.extraPFStuff.add(process.L1TPFJetsTask)
+    process.l1pfjetTable.jets.scPuppi = cms.InputTag('l1tSCPFL1PuppiEmulator')
+
+    process.extraPFStuff.add(process.L1TPFHistoSeedJetsTask)
+    process.l1pfjetTable.jets.wideHSC = cms.InputTag('l1t17x17HistoSeedsSCPFL1PuppiEmulator')
+
+    process.extraPFStuff.add(process.L1TPFHisto3x3SeedJetsTask)
+    process.l1pfjetTable.jets.wideHSC3x3 = cms.InputTag('l1t17x17Histo3x3SeedsSCPFL1PuppiEmulator')
+
+    process.extraPFStuff.add(process.L1TPFTrimmedHistoSeedJetsTask)
+    process.l1pfjetTable.jets.trimmedWideHSC = cms.InputTag('l1t17x17TrimmedHistoSeedsSCPFL1PuppiEmulator')
+
+    process.extraPFStuff.add(process.L1TPF15x15Histo3x3SeedJetsTask)
+    process.l1pfjetTable.jets.wide15x15HSC3x3 = cms.InputTag('l1t15x15Histo3x3SeedsSCPFL1PuppiEmulator')
+
+    return None
+
+addJets()
+addAK8jetsGen()
+
+
+def addJetConstituents(N):
+    for i in range(N): # save a max of N daughters (unfortunately 2D arrays are not yet supported in the NanoAOD output module)
+        for var in "pt", "eta", "phi", "mass", "pdgId":
+            setattr(
+                process.l1pfjetTable.moreVariables,    # object
+                "dau%d_%s" % (i, var),    # attribute example dau0_pt
+                cms.string( "? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i, i, var) )    # value, example 1st iter:  "? numberOfDaughters() > 0 ? daughter(0).pt : -1"
+                )                                                                                   # failing because number of daughters is not greater than 0 for histojets - num of daughters() returning 0
+                ### Pro
+        setattr(process.l1pfjetTable.moreVariables, "dau%d_%s" % (i,"vz"), cms.string("? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i,i,"vertex.Z")))    # Not relevant for finding seeds
+# addJetConstituents(1)
+
 
 # to check available tags:
 #process.content = cms.EDAnalyzer("EventContentAnalyzer")
@@ -158,52 +279,6 @@ process.p = cms.Path(
         )
 process.p.associate(process.extraPFStuff)
 process.TFileService = cms.Service("TFileService", fileName = cms.string("perfTuple.root"))
-
-# for full debug:
-#process.out = cms.OutputModule("PoolOutputModule",
-#                               fileName = cms.untracked.string("debugPF.root"),
-#                               SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring("p"))
-#                           )
-#process.end = cms.EndPath(process.out)
-process.outnano = cms.OutputModule("NanoAODOutputModule",
-    fileName = cms.untracked.string("perfNano.root"),
-    SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring('p')),
-    outputCommands = cms.untracked.vstring("drop *", "keep nanoaodFlatTable_*Table_*_*"),
-    compressionLevel = cms.untracked.int32(4),
-    compressionAlgorithm = cms.untracked.string("ZLIB"),
-)
-
-
-def addWideSeededConeJets():    # Add wide cone SC jets
-    process.extraPFStuff.add(process.L1TPFJetsTask)
-    process.l1pfjetTable.jets.scPuppi = cms.InputTag('l1tSCPFL1PuppiEmulator')
-
-def addWideHSCJets():
-    process.extraPFStuff.add(process.L1TPFHistoSeedJetsTask)
-    process.l1pfjetTable.jets.wideHSC = cms.InputTag('l1t17x17HistoSeedsSCPFL1PuppiEmulator')
-
-def addWideHSC3x3Jets():
-    process.extraPFStuff.add(process.L1TPFHisto3x3SeedJetsTask)
-    process.l1pfjetTable.jets.wideHSC3x3 = cms.InputTag('l1t17x17Histo3x3SeedsSCPFL1PuppiEmulator')
-
-def addTrimmedWideHSCJets():
-    process.extraPFStuff.add(process.L1TPFTrimmedHistoSeedJetsTask)
-    process.l1pfjetTable.jets.trimmedWideHSC = cms.InputTag('l1t17x17TrimmedHistoSeedsSCPFL1PuppiEmulator')
-
-def addWide15x15HSC3x3Jets():
-    process.extraPFStuff.add(process.L1TPF15x15Histo3x3SeedJetsTask)
-    process.l1pfjetTable.jets.wide15x15HSC3x3 = cms.InputTag('l1t15x15Histo3x3SeedsSCPFL1PuppiEmulator')
-
-
-def addAllJets():
-    addWideSeededConeJets()
-    addWideHSCJets()
-    addWideHSC3x3Jets()
-    addWide15x15HSC3x3Jets()
-    addTrimmedWideHSCJets()
-    
-addAllJets()
-
 
 def saveCands():
     process.l1pfcandTable = cms.EDProducer("L1PFCandTableProducer",
@@ -222,24 +297,25 @@ def saveCands():
 saveCands()
 
 
-def addJetConstituents(N):
-    for i in range(N): # save a max of N daughters (unfortunately 2D arrays are not yet supported in the NanoAOD output module)
-        for var in "pt", "eta", "phi", "mass", "pdgId":
-            setattr(
-                process.l1pfjetTable.moreVariables,    # object
-                "dau%d_%s" % (i, var),    # attribute example dau0_pt
-                cms.string( "? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i, i, var) )    # value, example 1st iter:  "? numberOfDaughters() > 0 ? daughter(0).pt : -1"
-                )                                                                                   # failing because number of daughters is not greater than 0 for histojets - num of daughters() returning 0
-                ### Pro
-        setattr(process.l1pfjetTable.moreVariables, "dau%d_%s" % (i,"vz"), cms.string("? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i,i,"vertex.Z")))    # Not relevant for finding seeds
-
-addJetConstituents(1)
+# for full debug:
+#process.out = cms.OutputModule("PoolOutputModule",
+#                               fileName = cms.untracked.string("debugPF.root"),
+#                               SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring("p"))
+#                           )
+#process.end = cms.EndPath(process.out)
+process.outnano = cms.OutputModule("NanoAODOutputModule",
+    fileName = cms.untracked.string("perfNano.root"),
+    SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring('p')),
+    outputCommands = cms.untracked.vstring("drop *", "keep nanoaodFlatTable_*Table_*_*"),
+    compressionLevel = cms.untracked.int32(4),
+    compressionAlgorithm = cms.untracked.string("ZLIB"),
+)
 
 process.l1pfcandTable.cands.l1tLayer2Deregionizer = cms.InputTag('l1tLayer2Deregionizer:Puppi')
-
 process.end = cms.EndPath(process.outnano)
 
-# Below for more debugging
+
+
 if True:
     process.genInAcceptance = cms.EDFilter("GenParticleSelector",
         src = cms.InputTag("genParticles"),
@@ -255,6 +331,7 @@ if True:
     process.ntuple.objects.PhGenAcc = cms.VInputTag(cms.InputTag("genInAcceptance"))
     process.ntuple.objects.PhGenAcc_sel = cms.string("pdgId == 22")
     process.extraPFStuff.add(process.genInAcceptance)
+
 def respOnly():
     process.p.remove(process.l1pfjetTable)
     process.p.remove(process.l1pfmetTable)
@@ -441,6 +518,7 @@ def addPFLep(pdgs=[11,13,22],opts=["PF","Puppi"], postfix=""):
                     phTable.variables.puppiW = Var("puppiWeight", float, precision=8)
                 setattr(process, w+"Ph"+postfix+"Table", phTable)
                 process.extraPFStuff.add(phTable)
+
 def addTkEG(postfix=""):
     for w in "EB","EE":
         tkEmTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
@@ -483,9 +561,11 @@ def goGun(calib=1):
     respOnly()
     if calib: 
         addCalib()
+
 def goMT(nthreads=2):
     process.options.numberOfThreads = cms.untracked.uint32(nthreads)
     process.options.numberOfStreams = cms.untracked.uint32(0)
+    
 def noPU():
     for X in "", "EM", "Raw", "EMRaw":
         pfc = getattr(process, 'l1tPFClustersFromHGC3DClusters'+X, None)
