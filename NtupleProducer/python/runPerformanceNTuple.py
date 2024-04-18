@@ -194,6 +194,7 @@ def addAK8jetsGen():
     
     return None
 
+
 def addAK8jetsPF():
 
     from RecoJets.JetProducers.ak8PFJets_cfi import ak8PFJets
@@ -254,7 +255,7 @@ def addJets():
     return None
 
 addJets()
-addAK8jetsGen()
+#addAK8jetsGen()
 
 
 def addJetConstituents(N):
@@ -267,7 +268,7 @@ def addJetConstituents(N):
                 )                                                                                   # failing because number of daughters is not greater than 0 for histojets - num of daughters() returning 0
                 ### Pro
         setattr(process.l1pfjetTable.moreVariables, "dau%d_%s" % (i,"vz"), cms.string("? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i,i,"vertex.Z")))    # Not relevant for finding seeds
-# addJetConstituents(1)
+addJetConstituents(10)
 
 
 # to check available tags:
