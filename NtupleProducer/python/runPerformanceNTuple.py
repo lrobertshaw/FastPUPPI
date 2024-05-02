@@ -5,7 +5,7 @@ from PhysicsTools.NanoAOD.common_cff import Var, ExtVar
 import sys
 inputFile = sys.argv[-1]
 print(inputFile)
-nEvents = 10
+nEvents = 10    # -1 is all events
 
 process = cms.Process("RESP", eras.Phase2C17I13M9)
 
@@ -152,45 +152,47 @@ monitorPerf("L1PF",    "l1tLayer1:PF")
 monitorPerf("L1Puppi", "l1tLayer1:Puppi")
 
 
+
+genParticlesForJets = cms.EDProducer("InputGenJetsParticleSelector",
+    src = cms.InputTag("genParticles"),
+    ignoreParticleIDs = cms.vuint32(
+        1000022,
+        1000012, 1000014, 1000016,
+        2000012, 2000014, 2000016,
+        1000039, 5100039,
+        4000012, 4000014, 4000016,
+        9900012, 9900014, 9900016,
+        39),
+    partonicFinalState = cms.bool(False),
+    excludeResonances = cms.bool(False),
+    excludeFromResonancePids = cms.vuint32(12, 13, 14, 16),
+    tausAsJets = cms.bool(False)
+)
+genParticlesForJetsNoNu = genParticlesForJets.clone()
+genParticlesForJetsNoNu.ignoreParticleIDs += [12,14,16]
+
+genJetParticlesTask = cms.Task(genParticlesForJets, genParticlesForJetsNoNu)
+#genJetParticlesTask = cms.Task(genParticlesForJetsNoNu)
+genJetParticles = cms.Sequence(genJetParticlesTask)
+
+
 def addAK8jetsGen():
 
-    #from RecoJets.JetProducers.ak8PFJets_cfi import ak8PFJets
     from RecoJets.JetProducers.ak8GenJets_cfi import ak8GenJets
 
-    genParticlesForJets = cms.EDProducer("InputGenJetsParticleSelector",
-        src = cms.InputTag("genParticles"),
-        ignoreParticleIDs = cms.vuint32(
-            1000022,
-            1000012, 1000014, 1000016,
-            2000012, 2000014, 2000016,
-            1000039, 5100039,
-            4000012, 4000014, 4000016,
-            9900012, 9900014, 9900016,
-            39),
-        partonicFinalState = cms.bool(False),
-        excludeResonances = cms.bool(False),
-        excludeFromResonancePids = cms.vuint32(12, 13, 14, 16),
-        tausAsJets = cms.bool(False)
-    )
-
-    genParticlesForJetsNoNu = genParticlesForJets.clone()
-    genParticlesForJetsNoNu.ignoreParticleIDs += [12,14,16]
-
-    genJetParticlesTask = cms.Task(genParticlesForJetsNoNu)
-    genJetParticles = cms.Sequence(genJetParticlesTask)
-
-    ak8GenJetsNoNu = ak8GenJets.clone(src = "genParticlesForJets", doAreaFastjet = False)
-    setattr(process, 'ak8GenJetsNoMu', ak8GenJetsNoNu)
+    ak8GenJetsNoNu = ak8GenJets.clone(src = "genParticlesForJetsNoNu", doAreaFastjet = False) # genParticlesForJets
+    setattr(process, 'ak8GenJetsNoNu', ak8GenJetsNoNu)
 
     recoAllGenJetsNoNuTask = cms.Task(ak8GenJetsNoNu)
+    recoAllGenJetsNoNu = cms.Sequence(recoAllGenJetsNoNuTask)
     setattr(process, 'recoAllGenJetsNoNuTask', recoAllGenJetsNoNuTask)
 
     process.extraPFStuff.add(process.recoAllGenJetsNoNuTask)
     #process.extraPFStuff.add(ak8GenJetsNoNu)
 
-    recoAllGenJetsNoNu = cms.Sequence(recoAllGenJetsNoNuTask)
+    # recoAllGenJetsNoNu = cms.Sequence(recoAllGenJetsNoNuTask)
 
-    setattr(process.l1pfjetTable.jets, "AK8Gen", cms.InputTag('ak8GenJetsNoMu'))
+    setattr(process.l1pfjetTable.jets, "AK8Gen", cms.InputTag('ak8GenJetsNoNu'))
     
     return None
 
@@ -199,38 +201,18 @@ def addAK8jetsPF():
 
     from RecoJets.JetProducers.ak8PFJets_cfi import ak8PFJets
 
-    genParticlesForJets = cms.EDProducer("InputGenJetsParticleSelector",
-        src = cms.InputTag("genParticles"),
-        ignoreParticleIDs = cms.vuint32(
-            1000022,
-            1000012, 1000014, 1000016,
-            2000012, 2000014, 2000016,
-            1000039, 5100039,
-            4000012, 4000014, 4000016,
-            9900012, 9900014, 9900016,
-            39),
-        partonicFinalState = cms.bool(False),
-        excludeResonances = cms.bool(False),
-        excludeFromResonancePids = cms.vuint32(12, 13, 14, 16),
-        tausAsJets = cms.bool(False)
-    )
-    genParticlesForJetsNoNu = genParticlesForJets.clone(); genParticlesForJetsNoNu.ignoreParticleIDs += [12,14,16]
+    ak8PFJetsNoNu = ak8PFJets.clone(src = "l1tLayer1:PF", doAreaFastjet = False)
+    setattr(process, 'ak8PFJetsNoNu', ak8PFJetsNoNu)
 
-    genJetParticlesTask = cms.Task(genParticlesForJetsNoNu)
-    genJetParticles = cms.Sequence(genJetParticlesTask)
+    recoAllPFJetsNoNuTask = cms.Task(ak8PFJetsNoNu)
+    setattr(process, 'recoAllPFJetsNoNuTask', recoAllPFJetsNoNuTask)
 
-    ak8GenJetsNoNu = ak8PFJets.clone(src = "l1tLayer1:PF", doAreaFastjet = False)
-    setattr(process, 'ak8GenJetsNoMu', ak8GenJetsNoNu)
-
-    recoAllGenJetsNoNuTask = cms.Task(ak8GenJetsNoNu)
-    setattr(process, 'recoAllGenJetsNoNuTask', recoAllGenJetsNoNuTask)
-
-    process.extraPFStuff.add(process.recoAllGenJetsNoNuTask)
+    process.extraPFStuff.add(process.recoAllPFJetsNoNuTask)
     #process.extraPFStuff.add(ak8GenJetsNoNu)
 
-    recoAllGenJetsNoNu = cms.Sequence(recoAllGenJetsNoNuTask)
+    recoAllGenJetsNoNu = cms.Sequence(recoAllPFJetsNoNuTask)
 
-    setattr(process.l1pfjetTable.jets, "AK8PF", cms.InputTag('ak8GenJetsNoMu'))
+    setattr(process.l1pfjetTable.jets, "AK8PF", cms.InputTag('ak8PFJetsNoNu'))
     
     return None
 
@@ -255,7 +237,7 @@ def addJets():
     return None
 
 addJets()
-#addAK8jetsGen()
+addAK8jetsGen()
 
 
 def addJetConstituents(N):
@@ -268,7 +250,7 @@ def addJetConstituents(N):
                 )                                                                                   # failing because number of daughters is not greater than 0 for histojets - num of daughters() returning 0
                 ### Pro
         setattr(process.l1pfjetTable.moreVariables, "dau%d_%s" % (i,"vz"), cms.string("? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i,i,"vertex.Z")))    # Not relevant for finding seeds
-addJetConstituents(10)
+addJetConstituents(130)
 
 
 # to check available tags:
