@@ -5,7 +5,7 @@ from PhysicsTools.NanoAOD.common_cff import Var, ExtVar
 import sys
 inputFile = sys.argv[-1]
 print(inputFile)
-nEvents = 10    # -1 is all events
+nEvents = -1    # -1 is all events
 
 process = cms.Process("RESP", eras.Phase2C17I13M9)
 
@@ -152,8 +152,7 @@ monitorPerf("L1PF",    "l1tLayer1:PF")
 monitorPerf("L1Puppi", "l1tLayer1:Puppi")
 
 
-
-genParticlesForJets = cms.EDProducer("InputGenJetsParticleSelector",
+genParticlesForJetsNoNu = cms.EDProducer("InputGenJetsParticleSelector",
     src = cms.InputTag("genParticles"),
     ignoreParticleIDs = cms.vuint32(
         1000022,
@@ -162,17 +161,14 @@ genParticlesForJets = cms.EDProducer("InputGenJetsParticleSelector",
         1000039, 5100039,
         4000012, 4000014, 4000016,
         9900012, 9900014, 9900016,
-        39),
+        39,12,14,16),
     partonicFinalState = cms.bool(False),
     excludeResonances = cms.bool(False),
     excludeFromResonancePids = cms.vuint32(12, 13, 14, 16),
     tausAsJets = cms.bool(False)
 )
-genParticlesForJetsNoNu = genParticlesForJets.clone()
-genParticlesForJetsNoNu.ignoreParticleIDs += [12,14,16]
 
-genJetParticlesTask = cms.Task(genParticlesForJets, genParticlesForJetsNoNu)
-#genJetParticlesTask = cms.Task(genParticlesForJetsNoNu)
+genJetParticlesTask = cms.Task(genParticlesForJetsNoNu)
 genJetParticles = cms.Sequence(genJetParticlesTask)
 
 
@@ -180,7 +176,7 @@ def addAK8jetsGen():
 
     from RecoJets.JetProducers.ak8GenJets_cfi import ak8GenJets
 
-    ak8GenJetsNoNu = ak8GenJets.clone(src = "genParticlesForJetsNoNu", doAreaFastjet = False) # genParticlesForJets
+    ak8GenJetsNoNu = ak8GenJets.clone(src = "l1tLayer1:Puppi", doAreaFastjet = False) # genParticlesForJets
     setattr(process, 'ak8GenJetsNoNu', ak8GenJetsNoNu)
 
     recoAllGenJetsNoNuTask = cms.Task(ak8GenJetsNoNu)
@@ -188,9 +184,6 @@ def addAK8jetsGen():
     setattr(process, 'recoAllGenJetsNoNuTask', recoAllGenJetsNoNuTask)
 
     process.extraPFStuff.add(process.recoAllGenJetsNoNuTask)
-    #process.extraPFStuff.add(ak8GenJetsNoNu)
-
-    # recoAllGenJetsNoNu = cms.Sequence(recoAllGenJetsNoNuTask)
 
     setattr(process.l1pfjetTable.jets, "AK8Gen", cms.InputTag('ak8GenJetsNoNu'))
     
@@ -250,7 +243,7 @@ def addJetConstituents(N):
                 )                                                                                   # failing because number of daughters is not greater than 0 for histojets - num of daughters() returning 0
                 ### Pro
         setattr(process.l1pfjetTable.moreVariables, "dau%d_%s" % (i,"vz"), cms.string("? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i,i,"vertex.Z")))    # Not relevant for finding seeds
-addJetConstituents(130)
+addJetConstituents(128)
 
 
 # to check available tags:
@@ -280,12 +273,12 @@ def saveCands():
 saveCands()
 
 
-# for full debug:
-#process.out = cms.OutputModule("PoolOutputModule",
+#for full debug:
+# process.out = cms.OutputModule("PoolOutputModule",
 #                               fileName = cms.untracked.string("debugPF.root"),
 #                               SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring("p"))
 #                           )
-#process.end = cms.EndPath(process.out)
+# process.end = cms.EndPath(process.out)
 process.outnano = cms.OutputModule("NanoAODOutputModule",
     fileName = cms.untracked.string("perfNano.root"),
     SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring('p')),
