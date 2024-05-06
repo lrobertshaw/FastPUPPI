@@ -113,38 +113,38 @@ def monitorPerf(label, tag, makeResp=True, makeRespSplit=True, makeJets=False, m
             process.ntuple.copyVecUInts.append( "%s:vecN%s%s" % (D,P,O))    
 
 
-process.ntuple = cms.EDAnalyzer("ResponseNTuplizer",
-    genJets = cms.InputTag("ak4GenJetsNoNu"),
-    genParticles = cms.InputTag("genParticles"),
-    isParticleGun = cms.bool(False),
-    writeExtraInfo = cms.bool(False),
-    doRandom = cms.bool(False),
-    objects = cms.PSet(
-        # -- inputs and PF --
-        RawTK  = cms.VInputTag('l1tPFTracksFromL1Tracks',),
-        # outputs
-    ),
-    copyUInts = cms.VInputTag(),
-    copyFloats = cms.VInputTag(),
-    copyVecUInts = cms.VInputTag(),
-)
+# process.ntuple = cms.EDAnalyzer("ResponseNTuplizer",
+#     genJets = cms.InputTag("ak4GenJetsNoNu"),
+#     genParticles = cms.InputTag("genParticles"),
+#     isParticleGun = cms.bool(False),
+#     writeExtraInfo = cms.bool(False),
+#     doRandom = cms.bool(False),
+#     objects = cms.PSet(
+#         # -- inputs and PF --
+#         RawTK  = cms.VInputTag('l1tPFTracksFromL1Tracks',),
+#         # outputs
+#     ),
+#     copyUInts = cms.VInputTag(),
+#     copyFloats = cms.VInputTag(),
+#     copyVecUInts = cms.VInputTag(),
+# )
 
-process.extraPFStuff.add(process.l1tPFTracksFromL1Tracks)
+# process.extraPFStuff.add(process.l1tPFTracksFromL1Tracks)
 
-process.l1pfjetTable = cms.EDProducer(
-    "L1PFJetTableProducer",
-    gen = cms.InputTag("ak4GenJetsNoNu"),
-    commonSel = cms.string("pt > 5 && abs(eta) < 5.0"),
-    drMax = cms.double(0.2),
-    minRecoPtOverGenPt = cms.double(0.1),
-    jets = cms.PSet(
-        Gen = cms.InputTag("ak4GenJetsNoNu"),
-        Gen_sel = cms.string("pt > 15"),
-    ),
-    moreVariables = cms.PSet(
-        nDau = cms.string("numberOfDaughters()"),
-    ),
-)
+# process.l1pfjetTable = cms.EDProducer(
+#     "L1PFJetTableProducer",
+#     gen = cms.InputTag("ak4GenJetsNoNu"),
+#     commonSel = cms.string("pt > 5 && abs(eta) < 5.0"),
+#     drMax = cms.double(0.2),
+#     minRecoPtOverGenPt = cms.double(0.1),
+#     jets = cms.PSet(
+#         Gen = cms.InputTag("ak4GenJetsNoNu"),
+#         Gen_sel = cms.string("pt > 15"),
+#     ),
+#     moreVariables = cms.PSet(
+#         nDau = cms.string("numberOfDaughters()"),
+#     ),
+# )
 
 process.l1pfmetTable = cms.EDProducer("L1PFMetTableProducer",
     genMet = cms.InputTag("genMetTrue"), 
@@ -227,6 +227,40 @@ recoAllGenJetsNoNu=cms.Sequence(recoAllGenJetsNoNuTask)
 
 setattr(process, 'recoAllGenJetsNoNuTask', recoAllGenJetsNoNuTask)
 process.extraPFStuff.add(process.recoAllGenJetsNoNuTask)
+
+
+process.ntuple = cms.EDAnalyzer("ResponseNTuplizer",
+    genJets = cms.InputTag("ak8GenJetsNoNu"),
+    genParticles = cms.InputTag("genParticles"),
+    isParticleGun = cms.bool(False),
+    writeExtraInfo = cms.bool(False),
+    doRandom = cms.bool(False),
+    objects = cms.PSet(
+        # -- inputs and PF --
+        RawTK  = cms.VInputTag('l1tPFTracksFromL1Tracks',),
+        # outputs
+    ),
+    copyUInts = cms.VInputTag(),
+    copyFloats = cms.VInputTag(),
+    copyVecUInts = cms.VInputTag(),
+)
+
+process.extraPFStuff.add(process.l1tPFTracksFromL1Tracks)
+
+process.l1pfjetTable = cms.EDProducer(
+    "L1PFJetTableProducer",
+    gen = cms.InputTag("ak8GenJetsNoNu"),
+    commonSel = cms.string("pt > 5 && abs(eta) < 5.0"),
+    drMax = cms.double(0.2),
+    minRecoPtOverGenPt = cms.double(0.1),
+    jets = cms.PSet(
+        Gen = cms.InputTag("ak8GenJetsNoNu"),
+        Gen_sel = cms.string("pt > 15"),
+    ),
+    moreVariables = cms.PSet(
+        nDau = cms.string("numberOfDaughters()"),
+    ),
+)
 
 setattr(process.l1pfjetTable.jets, "AK4Gen", cms.InputTag('ak4GenJetsNoNu'))
 setattr(process.l1pfjetTable.jets, "AK8Gen", cms.InputTag('ak8GenJetsNoNu'))
