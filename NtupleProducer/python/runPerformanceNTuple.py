@@ -5,7 +5,7 @@ from PhysicsTools.NanoAOD.common_cff import Var, ExtVar
 import sys
 inputFile = sys.argv[-1]
 print(inputFile)
-nEvents = -1    # -1 is all events
+nEvents = 10    # -1 is all events
 
 process = cms.Process("RESP", eras.Phase2C17I13M9)
 
@@ -33,9 +33,11 @@ process.load('SimCalorimetry.HcalTrigPrimProducers.hcaltpdigi_cff') # needed to 
 process.load('SimCalorimetry.HGCalSimProducers.hgcalDigitizer_cfi') # needed for HGCAL_noise_fC
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.load('RecoMET.Configuration.GenMETParticles_cff')
+process.load('RecoJets.Configuration.GenJetParticles_cff')    # ADDED TO COPY ABOVE LINE
 process.load('RecoMET.METProducers.genMetTrue_cfi')
 
-from RecoJets.JetProducers.ak4PFJets_cfi import ak4PFJets
+# from RecoJets.JetProducers.ak4PFJets_cfi import ak4PFJets
+# from RecoJets.JetProducers.ak8PFJets_cfi import ak8PFJets
 from RecoMET.METProducers.pfMet_cfi import pfMet
 
 from Configuration.AlCa.GlobalTag import GlobalTag
@@ -53,13 +55,15 @@ process.centralGen = cms.EDFilter("CandPtrSelector", src = cms.InputTag("genPart
 process.barrelGen = cms.EDFilter("CandPtrSelector", src = cms.InputTag("genParticlesForMETAllVisible"), cut = cms.string("abs(eta) < 1.5"))
 process.genMetCentralTrue = process.genMetTrue.clone(src = cms.InputTag("centralGen"))
 process.extraPFStuff.add(
+    process.genParticlesForJets,   ########## I ADDED THIS TO COPY GEN PARTICLES FOR MET
+    process.genParticlesForJetsNoNu,       #### I ADDED THIS TOO
     process.genParticlesForMETAllVisible,
     process.centralGen,
     process.barrelGen,
     process.genMetCentralTrue
 )
 
-def monitorPerf(label, tag, makeResp=True, makeRespSplit=True, makeJets=True, makeMET=True, makeCentralMET=True,
+def monitorPerf(label, tag, makeResp=True, makeRespSplit=True, makeJets=False, makeMET=True, makeCentralMET=True,
                 makeInputMultiplicities=False, makeOutputMultiplicities=False, saveCands=False):
     """ This function... """
     def _add(name, what):
@@ -80,8 +84,10 @@ def monitorPerf(label, tag, makeResp=True, makeRespSplit=True, makeJets=True, ma
             setattr(process.ntuple.objects, label+"NeutralHad",  cms.VInputTag(cms.InputTag(tag)))
             setattr(process.ntuple.objects, label+"NeutralHad_sel", cms.string("charge == 0 && pdgId != 22"))
     if makeJets:
-        _add('ak4'+label, ak4PFJets.clone(src = tag, doAreaFastjet = False))
-        setattr(process.l1pfjetTable.jets, label, cms.InputTag('ak4'+label))
+        _add('ak8'+label, ak8PFJets.clone(src = tag, doAreaFastjet = False))
+        setattr(process.l1pfjetTable.jets, label, cms.InputTag('ak8'+label))
+        # _add('ak4'+label, ak4PFJets.clone(src = tag, doAreaFastjet = False))
+        # setattr(process.l1pfjetTable.jets, label, cms.InputTag('ak4'+label))
     if saveCands:
         setattr(process.l1pfcandTable.cands, label, cms.InputTag(tag))
     if makeMET:
@@ -105,6 +111,7 @@ def monitorPerf(label, tag, makeResp=True, makeRespSplit=True, makeJets=True, ma
             for X in ("tot","max"):
                 process.ntuple.copyUInts.append( "%s:%sN%s%s" % (D,X,P,O))
             process.ntuple.copyVecUInts.append( "%s:vecN%s%s" % (D,P,O))    
+
 
 process.ntuple = cms.EDAnalyzer("ResponseNTuplizer",
     genJets = cms.InputTag("ak4GenJetsNoNu"),
@@ -146,68 +153,83 @@ process.l1pfmetTable = cms.EDProducer("L1PFMetTableProducer",
 )
 process.l1pfmetCentralTable = process.l1pfmetTable.clone(genMet = "genMetCentralTrue", flavour = "Central")
 
-monitorPerf("L1Calo", "l1tLayer1:Calo")
-monitorPerf("L1TK",   "l1tLayer1:TK")
-monitorPerf("L1PF",    "l1tLayer1:PF")
-monitorPerf("L1Puppi", "l1tLayer1:Puppi")
+process.l1pfcandTable = cms.EDProducer("L1PFCandTableProducer",
+                                        commonSel = cms.string("pt > 0.0 && abs(eta) < 10.0"),
+                                        cands = cms.PSet(
+                                        ),
+                                        moreVariables = cms.PSet(
+                                            puppiWeight = cms.string("puppiWeight"),
+                                            pdgId = cms.string("pdgId"),
+                                            charge = cms.string("charge")
+                                        ),
+                                    )
+
+# monitorPerf("L1Calo", "l1tLayer1:Calo")
+# monitorPerf("L1TK",   "l1tLayer1:TK")
+# monitorPerf("L1PF",    "l1tLayer1:PF")
+# monitorPerf("L1Puppi", "l1tLayer1:Puppi")
 
 
-genParticlesForJetsNoNu = cms.EDProducer("InputGenJetsParticleSelector",
+from RecoJets.JetProducers.ak4GenJets_cfi import ak4GenJets
+from RecoJets.JetProducers.ak8GenJets_cfi import ak8GenJets
+
+# Define final state particles from gen particles to use as input for ak8GenJets
+genParticlesForJets = cms.EDProducer("InputGenJetsParticleSelector",
     src = cms.InputTag("genParticles"),
     ignoreParticleIDs = cms.vuint32(
-        1000022,
-        1000012, 1000014, 1000016,
-        2000012, 2000014, 2000016,
-        1000039, 5100039,
-        4000012, 4000014, 4000016,
-        9900012, 9900014, 9900016,
-        39,12,14,16),
+         1000022,
+         1000012, 1000014, 1000016,
+         2000012, 2000014, 2000016,
+         1000039, 5100039,
+         4000012, 4000014, 4000016,
+         9900012, 9900014, 9900016,
+         39),
     partonicFinalState = cms.bool(False),
     excludeResonances = cms.bool(False),
     excludeFromResonancePids = cms.vuint32(12, 13, 14, 16),
     tausAsJets = cms.bool(False)
 )
 
-genJetParticlesTask = cms.Task(genParticlesForJetsNoNu)
+genParticlesForJetsNoNu = genParticlesForJets.clone()
+genParticlesForJetsNoNu.ignoreParticleIDs += [12,14,16]
+
+genJetParticlesTask = cms.Task(genParticlesForJets, genParticlesForJetsNoNu)
 genJetParticles = cms.Sequence(genJetParticlesTask)
 
+ak4GenJetsNoNu = ak4GenJets.clone( src = "genParticlesForJetsNoNu" )
+ak8GenJetsNoNu = ak8GenJets.clone( src = "genParticlesForJetsNoNu" )
+# ak8GenJetsNoNu = ak8GenJets.clone(src ="genParticlesForJetsNoNu") # src = "genParticlesForJetsNoNu"
+setattr(process, 'ak4GenJetsNoNu', ak4GenJetsNoNu)
+setattr(process, 'ak8GenJetsNoNu', ak8GenJetsNoNu)
 
-def addAK8jetsGen():
+recoGenJetsTask = cms.Task(ak4GenJets,
+                           ak8GenJets,
+                           ak4GenJetsNoNu,
+                           ak8GenJetsNoNu
+                           )
+recoGenJets  = cms.Sequence(recoGenJetsTask)
 
-    from RecoJets.JetProducers.ak8GenJets_cfi import ak8GenJets
+recoAllGenJetsTask=cms.Task(ak4GenJets,
+                            ak8GenJets)
+recoAllGenJets=cms.Sequence(recoAllGenJetsTask)
 
-    ak8GenJetsNoNu = ak8GenJets.clone(src = "l1tLayer1:Puppi", doAreaFastjet = False) # genParticlesForJets
-    setattr(process, 'ak8GenJetsNoNu', ak8GenJetsNoNu)
-
-    recoAllGenJetsNoNuTask = cms.Task(ak8GenJetsNoNu)
-    recoAllGenJetsNoNu = cms.Sequence(recoAllGenJetsNoNuTask)
-    setattr(process, 'recoAllGenJetsNoNuTask', recoAllGenJetsNoNuTask)
-
-    process.extraPFStuff.add(process.recoAllGenJetsNoNuTask)
-
-    setattr(process.l1pfjetTable.jets, "AK8Gen", cms.InputTag('ak8GenJetsNoNu'))
-    
-    return None
+recoAllGenJetsNoNuTask=cms.Task(ak4GenJetsNoNu,
+                                ak8GenJetsNoNu)
+# recoAllGenJetsNoNuTask = cms.Task(ak8GenJetsNoNu)
 
 
-def addAK8jetsPF():
+#setattr(process, 'recoAllGenJetsNoNuTask', recoAllGenJetsNoNuTask)
 
-    from RecoJets.JetProducers.ak8PFJets_cfi import ak8PFJets
+recoAllGenJetsNoNu=cms.Sequence(recoAllGenJetsNoNuTask)
+# recoAllGenJetsNoNu = cms.Sequence(recoAllGenJetsNoNuTask)
 
-    ak8PFJetsNoNu = ak8PFJets.clone(src = "l1tLayer1:PF", doAreaFastjet = False)
-    setattr(process, 'ak8PFJetsNoNu', ak8PFJetsNoNu)
+#process.extraPFStuff.add(process.recoAllGenJetsTask)
 
-    recoAllPFJetsNoNuTask = cms.Task(ak8PFJetsNoNu)
-    setattr(process, 'recoAllPFJetsNoNuTask', recoAllPFJetsNoNuTask)
+setattr(process, 'recoAllGenJetsNoNuTask', recoAllGenJetsNoNuTask)
+process.extraPFStuff.add(process.recoAllGenJetsNoNuTask)
 
-    process.extraPFStuff.add(process.recoAllPFJetsNoNuTask)
-    #process.extraPFStuff.add(ak8GenJetsNoNu)
-
-    recoAllGenJetsNoNu = cms.Sequence(recoAllPFJetsNoNuTask)
-
-    setattr(process.l1pfjetTable.jets, "AK8PF", cms.InputTag('ak8PFJetsNoNu'))
-    
-    return None
+setattr(process.l1pfjetTable.jets, "AK4Gen", cms.InputTag('ak4GenJetsNoNu'))
+setattr(process.l1pfjetTable.jets, "AK8Gen", cms.InputTag('ak8GenJetsNoNu'))
 
 
 def addJets():
@@ -215,22 +237,21 @@ def addJets():
     process.extraPFStuff.add(process.L1TPFJetsTask)
     process.l1pfjetTable.jets.scPuppi = cms.InputTag('l1tSCPFL1PuppiEmulator')
 
-    process.extraPFStuff.add(process.L1TPFHistoSeedJetsTask)
-    process.l1pfjetTable.jets.wideHSC = cms.InputTag('l1t17x17HistoSeedsSCPFL1PuppiEmulator')
+    # process.extraPFStuff.add(process.L1TPFHistoSeedJetsTask)
+    # process.l1pfjetTable.jets.wideHSC = cms.InputTag('l1t17x17HistoSeedsSCPFL1PuppiEmulator')
 
-    process.extraPFStuff.add(process.L1TPFHisto3x3SeedJetsTask)
-    process.l1pfjetTable.jets.wideHSC3x3 = cms.InputTag('l1t17x17Histo3x3SeedsSCPFL1PuppiEmulator')
+    # process.extraPFStuff.add(process.L1TPFHisto3x3SeedJetsTask)
+    # process.l1pfjetTable.jets.wideHSC3x3 = cms.InputTag('l1t17x17Histo3x3SeedsSCPFL1PuppiEmulator')
 
-    process.extraPFStuff.add(process.L1TPFTrimmedHistoSeedJetsTask)
-    process.l1pfjetTable.jets.trimmedWideHSC = cms.InputTag('l1t17x17TrimmedHistoSeedsSCPFL1PuppiEmulator')
+    # process.extraPFStuff.add(process.L1TPFTrimmedHistoSeedJetsTask)
+    # process.l1pfjetTable.jets.trimmedWideHSC = cms.InputTag('l1t17x17TrimmedHistoSeedsSCPFL1PuppiEmulator')
 
-    process.extraPFStuff.add(process.L1TPF15x15Histo3x3SeedJetsTask)
-    process.l1pfjetTable.jets.wide15x15HSC3x3 = cms.InputTag('l1t15x15Histo3x3SeedsSCPFL1PuppiEmulator')
+    # process.extraPFStuff.add(process.L1TPF15x15Histo3x3SeedJetsTask)
+    # process.l1pfjetTable.jets.wide15x15HSC3x3 = cms.InputTag('l1t15x15Histo3x3SeedsSCPFL1PuppiEmulator')
 
     return None
 
 addJets()
-addAK8jetsGen()
 
 
 def addJetConstituents(N):
@@ -241,9 +262,8 @@ def addJetConstituents(N):
                 "dau%d_%s" % (i, var),    # attribute example dau0_pt
                 cms.string( "? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i, i, var) )    # value, example 1st iter:  "? numberOfDaughters() > 0 ? daughter(0).pt : -1"
                 )                                                                                   # failing because number of daughters is not greater than 0 for histojets - num of daughters() returning 0
-                ### Pro
         setattr(process.l1pfjetTable.moreVariables, "dau%d_%s" % (i,"vz"), cms.string("? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i,i,"vertex.Z")))    # Not relevant for finding seeds
-addJetConstituents(128)
+addJetConstituents(128)  # 128 for all constituents
 
 
 # to check available tags:
@@ -251,22 +271,23 @@ addJetConstituents(128)
 process.p = cms.Path(
         process.ntuple + #process.content +
         process.l1pfjetTable + 
-        process.l1pfmetTable + process.l1pfmetCentralTable
+        process.l1pfmetTable + process.l1pfmetCentralTable +
+        process.l1pfcandTable
         )
 process.p.associate(process.extraPFStuff)
 process.TFileService = cms.Service("TFileService", fileName = cms.string("perfTuple.root"))
 
 def saveCands():
-    process.l1pfcandTable = cms.EDProducer("L1PFCandTableProducer",
-                                           commonSel = cms.string("pt > 0.0 && abs(eta) < 10.0"),
-                                           cands = cms.PSet(
-                                           ),
-                                           moreVariables = cms.PSet(
-                                               puppiWeight = cms.string("puppiWeight"),
-                                               pdgId = cms.string("pdgId"),
-                                               charge = cms.string("charge")
-                                           ),
-                                       )
+    # process.l1pfcandTable = cms.EDProducer("L1PFCandTableProducer",
+    #                                        commonSel = cms.string("pt > 0.0 && abs(eta) < 10.0"),
+    #                                        cands = cms.PSet(
+    #                                        ),
+    #                                        moreVariables = cms.PSet(
+    #                                            puppiWeight = cms.string("puppiWeight"),
+    #                                            pdgId = cms.string("pdgId"),
+    #                                            charge = cms.string("charge")
+    #                                        ),
+    #                                    )
     monitorPerf("L1PF", "l1tLayer1:PF", saveCands=True)
     monitorPerf("L1Puppi", "l1tLayer1:Puppi", saveCands=True)
     process.p += process.l1pfcandTable
@@ -275,7 +296,7 @@ saveCands()
 
 #for full debug:
 # process.out = cms.OutputModule("PoolOutputModule",
-#                               fileName = cms.untracked.string("debugPF.root"),
+#                               fileName = cms.untracked.string("debugPF2.root"),
 #                               SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring("p"))
 #                           )
 # process.end = cms.EndPath(process.out)
@@ -289,7 +310,6 @@ process.outnano = cms.OutputModule("NanoAODOutputModule",
 
 process.l1pfcandTable.cands.l1tLayer2Deregionizer = cms.InputTag('l1tLayer2Deregionizer:Puppi')
 process.end = cms.EndPath(process.outnano)
-
 
 
 if True:
