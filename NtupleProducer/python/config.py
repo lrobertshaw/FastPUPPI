@@ -5,11 +5,14 @@ from PhysicsTools.NanoAOD.common_cff import Var, ExtVar
 import sys
 from collections import namedtuple
 Jets = namedtuple("Jets", "label tag task")
+
 inputFile = sys.argv[-1]
 print(inputFile)
+
 nEvents = 10    # -1 is all events
 wideJets = True
 
+# Handle wide and regular jets
 if wideJets == True:
     genJets = "ak8GenJetsNoNu"
     ptCut = 30
