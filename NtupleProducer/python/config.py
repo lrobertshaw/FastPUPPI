@@ -6,10 +6,10 @@ import sys
 from collections import namedtuple
 Jets = namedtuple("Jets", "label tag task")
 
-inputFile = sys.argv[-1]
+inputFile = sys.argv[-1]    # root://eoscms.cern.ch//eos/cms//store/cmst3/group/l1tr/gpetrucc/12_5_X/NewInputs125X/150223/VH_PtHat125_PU200/inputs125X_VH_PtHat125_PU200_job6.root
 print(inputFile)
 
-nEvents = 10    # -1 is all events
+nEvents = -1    # -1 is all events
 wideJets = True
 
 # Handle wide and regular jets
@@ -64,6 +64,7 @@ process.extraPFStuff = cms.Task(
     process.L1TLayer1TaskInputsTask,
     process.L1TLayer1Task,
     )
+
 if wideJets == True:
     process.load('RecoJets.Configuration.GenJetParticles_cff')
     process.extraPFStuff.add(process.genParticlesForJetsNoNu)
@@ -75,6 +76,7 @@ if wideJets == True:
     ak8GenJetsNoNuTask = cms.Task(ak8GenJetsNoNu)
     setattr(process, 'ak8GenJetsNoNuTask', ak8GenJetsNoNuTask)
     process.extraPFStuff.add(process.ak8GenJetsNoNuTask)
+    #setattr(process.l1pfjetTable.jets, "AK8", cms.InputTag(ak8GenJetsNoNu))
 
 
 """ DEFINE NTUPLE PRODUCER """
@@ -102,7 +104,7 @@ process.l1pfcandTable = cms.EDProducer(
     cands = cms.PSet(
     ),
     moreVariables = cms.PSet(
-        puppiWeight = cms.string("puppiWeight"),
+        # puppiWeight = cms.string("puppiWeight"),   # commented out as not a property of gen jets so raises error
         pdgId = cms.string("pdgId"),
         charge = cms.string("charge")
     ),
@@ -111,7 +113,6 @@ process.l1pfcandTable = cms.EDProducer(
 """ Add the jet table to the process to store jets """
 process.l1pfjetTable = cms.EDProducer(
     "L1PFJetTableProducer",
-    
     gen = cms.InputTag(genJets),
     commonSel = cms.string("pt > 5 && abs(eta) < 5.0"),
     drMax = cms.double(0.2),    # DOUBLE THE SIZE FOR WIDE CONE ????
@@ -147,29 +148,32 @@ def saveCands(label, tag):
 
 
 ##############################################################################################################################################################
+AK8 = Jets(label="AK8", tag="ak8GenJetsNoNu", task=process.ak8GenJetsNoNuTask)
 SC8 = Jets(label="SC8", tag="l1tSCPFL1PuppiEmulator", task=process.L1TPFJetsTask)
 wideHSC = Jets(label="wideHSC", tag="l1t17x17HistoSeedsSCPFL1PuppiEmulator", task=process.L1TPFHistoSeedJetsTask)
 wideHSC3x3 = Jets(label="wideHSC3x3", tag="l1t17x17Histo3x3SeedsSCPFL1PuppiEmulator", task=process.L1TPFHisto3x3SeedJetsTask)
 trimmedWideHSC = Jets(label="trimmedWideHSC", tag="l1t17x17TrimmedHistoSeedsSCPFL1PuppiEmulator", task=process.L1TPFTrimmedHistoSeedJetsTask)
 wide15x15HSC3x3 = Jets(label="wide15x15HSC3x3", tag="l1t15x15Histo3x3SeedsSCPFL1PuppiEmulator", task=process.L1TPF15x15Histo3x3SeedJetsTask)
 
+addJets(*AK8)
 addJets(*SC8)
 addJets(*wideHSC)
 # addJets(*wideHSC3x3)
 # addJets(*trimmedWideHSC)
 # addJets(*wide15x15HSC3x3)
 
-addJetConstituents()  # 128 by default
+addJetConstituents(N=128)  # 128 by default
 
 saveCands(label="l1tLayer2Deregionizer", tag="l1tLayer2Deregionizer:Puppi")    # save PUPPI cands
+saveCands(label="GenParticles", tag = "genParticles")    # Include genParticles by default
 ##############################################################################################################################################################
 
 """ END PROCESS AND OUTPUT """
 process.p = cms.Path(
-        process.ntuple +
-        process.l1pfjetTable +
-        process.l1pfcandTable
-        )
+    process.ntuple +
+    process.l1pfjetTable +
+    process.l1pfcandTable
+    )
 process.p.associate(process.extraPFStuff)
 process.TFileService = cms.Service("TFileService", fileName = cms.string("perfTuple.root"))
 
