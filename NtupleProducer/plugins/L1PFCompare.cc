@@ -41,7 +41,7 @@
 #include "DataFormats/L1THGCal/interface/HGCalMulticluster.h"
 #include "DataFormats/L1Trigger/interface/EGamma.h"
 #include  "DataFormats/L1Trigger/interface/Vertex.h"
-#include "L1Trigger/Phase2L1ParticleFlow/interface/BJetId.h"
+#include "L1Trigger/Phase2L1ParticleFlow/interface/JetId.h"
 
 
 #include "TTree.h"
