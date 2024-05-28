@@ -247,10 +247,10 @@ def addCalib():
 
 def addSeededConeJets():
     process.extraPFStuff.add(process.L1TPFJetsTask)
-    process.l1pfjetTable.jets.scPuppiSim = cms.InputTag('l1tSCPFL1Puppi')
-    process.l1pfjetTable.jets.scPuppi = cms.InputTag('l1tSCPFL1PuppiEmulator')
-    process.l1pfjetTable.jets.scPuppiCorr = cms.InputTag('l1tSCPFL1PuppiCorrectedEmulator')
-    process.l1pfmetTable.mets.scPuppiCorrMHT = cms.InputTag("l1tSCPFL1PuppiCorrectedEmulatorMHT")
+    process.l1pfjetTable.jets.scPuppiSim = cms.InputTag('l1tSC4PFL1Puppi')
+    process.l1pfjetTable.jets.scPuppi = cms.InputTag('l1tSC4PFL1PuppiEmulator')
+    process.l1pfjetTable.jets.scPuppiCorr = cms.InputTag('l1tSC4PFL1PuppiCorrectedEmulator')
+    process.l1pfmetTable.mets.scPuppiCorrMHT = cms.InputTag("l1tSC4PFL1PuppiCorrectedEmulatorMHT")
 
 def addPhase1Jets():
     process.extraPFStuff.add(process.l1tPhase1JetProducer9x9, process.l1tPhase1JetCalibrator9x9, process.l1tPhase1JetSumsProducer9x9)
@@ -259,7 +259,7 @@ def addPhase1Jets():
     process.l1pfjetTable.jets.phase19x9PuppiCorr = cms.InputTag('l1tPhase1JetCalibrator9x9', "Phase1L1TJetFromPfCandidates")
     process.l1pfjetTable.jets.phase19x9trimmedPuppi = cms.InputTag('l1tPhase1JetProducer9x9trimmed', "UncalibratedPhase1L1TJetFromPfCandidates")
     process.l1pfjetTable.jets.phase19x9trimmedPuppiCorr = cms.InputTag('l1tPhase1JetCalibrator9x9trimmed', "Phase1L1TJetFromPfCandidates")
-    process.l1pfmetTable.mets.scPuppiCorrMHT = cms.InputTag("l1tSCPFL1PuppiCorrectedEmulatorMHT")
+    process.l1pfmetTable.mets.scPuppiCorrMHT = cms.InputTag("l1tSC4PFL1PuppiCorrectedEmulatorMHT")
 
 def addCaloJets():
     process.extraPFStuff.add(process.l1tTowerCalibration, process.l1tCaloJet)
