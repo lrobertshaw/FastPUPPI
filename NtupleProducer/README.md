@@ -20,7 +20,7 @@ git cms-addpkg L1Trigger/Phase2L1ParticleFlow
 git cms-addpkg L1Trigger/TrackTrigger
 git cms-addpkg SimTracker/TrackTriggerAssociation
 git cms-addpkg L1Trigger/Phase2L1ParticleFlow
-git cms-checkout-topic -u cms-l1t-offline:phase2-l1t-1400pre3_v5
+git cms-checkout-topic -u cms-l1t-offline:phase2-l1t-1400pre3_v9
 
 # scripts
 git clone git@github.com:p2l1pfp/FastPUPPI.git -b 14_0_X
@@ -43,6 +43,7 @@ The supported input campaings are:
  * `11_0_X` from the HLT TDR campaign (Phase2C9, Geometry D49, HGCal v11).
 
 Existing input files available are:
+ * `131X_v9a`: input files from processing `13_1_X` Phase2Spring23 samples in `CMSSW_14_0_0_pre3` + `cms-l1t-offline:phase2-l1t-1400pre3_v9`, from `/eos/cms/store/cmst3/group/l1tr/FastPUPPI/14_0_X/fpinputs_131X/v9a/`
  * `131X_v3`: input files from processing `13_1_X` Phase2Spring23 samples in `CMSSW_14_0_0_pre3` + `cms-l1t-offline:phase2-l1t-1400pre3_v4`, from `/store/cmst3/group/l1tr/cerminar/14_0_X/fpinputs_131X/v3`
  * `131X_v2`: input files from processing `13_1_X` Phase2Spring23 samples in `CMSSW_14_0_X`, from `/store/cmst3/group/l1tr/cerminar/14_0_X/fpinputs_131X/v2`
  * `125X_v0`:  input files from processing `12_5_X` Phase2Fall22 TDR samples in `CMSSW_12_5_3`, from `/store/cmst3/group/l1tr/gpetrucc/12_5_X/NewInputs125X/150223`
@@ -65,8 +66,22 @@ In order to run the python configuration file on many events locally, a driver s
 cmsRun runPerformanceNTuple.py
 ```
 
-The configuration of the various `Nano-AOD` flat tables is steered via inline customization functions. Have a look to the `runPerformanceNTuple.py` for the details.
+The configuration of the various `Nano-AOD` flat tables is steered via inline customization functions. Have a look to the `runPerformanceNTuple.py` for the details (e.g. `python3 -i runPerformanceNTuple.py` and then print `process.p` and `process.extraPFStuff`).
 
+*NOTE*: by default the `L1PFJetTableProducer` and `L1PFMetTableProducer` produce the following tables:
+   - `GenJets`
+   - `genMet` + `genMetCentral` (|eta| < 2.4)
+   - `L1CaloJets`: `ak4` jets from `l1tLayer1:Calo` objects
+   - `L1PFJets`: `ak4` jets from `l1tLayer1:PF` objects
+   - `L1PUPPIJets`:  `ak4` jets from `l1tLayer1:PUPPI` objects
+   - `L1TkJets`:  `ak4` jets from `l1tLayer1:TK` objects
+   - `L1CaloMet` + `L1CaloMetCentral` (|eta| < 2.4)
+   - `L1PFMet` + `L1PFMetCentral` (|eta| < 2.4)
+   - `L1PUPPIMet` + `L1PUPPIMetCentral` (|eta| < 2.4)
+   - `L1TKMet` + `L1TKMetCentral` (|eta| < 2.4)
+
+
+JetMET Response studies are performed by the `ResponseNTuplizer` plugin which is run by default (to inspect its configuration `python3 -i runPerformanceNTuple.py` and then print `process.ntuple`). The `noResp()` and `respOnly()` customize control this aspect of the processing.
 
 To run the ntuplizer over many files, from within `NtupleProducer/python` do for instance:
 ```
@@ -129,3 +144,5 @@ Notes:
   * `-P isorate -v lepN_V --xvar lep_X`  can make an isorate plot of efficiency vs X (e.g. `pt`) for a trigger requiring at least `N` leptons with a cut on V (normally `pt`)
 
 See examples in `scripts/valSuite.sh` for `run-leps` and `plots-leps` 
+
+5) Dedicated studies for e/g are done with the external package [ntuple-analysis](https://github.com/cerminar/ntuple-analysis)

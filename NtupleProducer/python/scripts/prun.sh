@@ -11,10 +11,19 @@ if [[ "$1" == "-j" ]]; then N=$2; shift; shift; fi;
 
 OPTS=""
 
-if [[ "$1" == "--125X_v0" ]]; then
+if [[ "$1" == "--131X_v9a" ]]; then
+    shift;
+    MAIN=/eos/cms/store/cmst3/group/l1tr/FastPUPPI/14_0_X/fpinputs_131X/v9a/$1
+    PREFIX="inputs131X_"
+elif [[ "$1" == "--131X_v3" ]]; then
+    shift;
+    MAIN=/eos/cms/store/cmst3/group/l1tr/cerminar/14_0_X/fpinputs_131X/v3/$1
+    PREFIX="inputs131X_"
+elif [[ "$1" == "--125X_v0" ]]; then
     shift;
     MAIN=/eos/cms/store/cmst3/group/l1tr/gpetrucc/12_5_X/NewInputs125X/150223/$1
     PREFIX="inputs125X_"
+    # FIXME: we need to fix the geometry
 elif [[ "$1" == "--110X_v2" ]]; then
     shift;
     MAIN=/eos/cms/store/cmst3/group/l1tr/gpetrucc/11_1_0/NewInputs110X/110121.done/$1
