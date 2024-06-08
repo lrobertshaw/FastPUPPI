@@ -106,6 +106,7 @@ def monitorPerf(label, tag, makeResp=True, makeRespSplit=True, makeJets=True, ma
                 process.ntuple.copyUInts.append( "%s:%sN%s%s" % (D,X,P,O))
             process.ntuple.copyVecUInts.append( "%s:vecN%s%s" % (D,P,O))    
 
+
 process.ntuple = cms.EDAnalyzer("ResponseNTuplizer",
     genJets = cms.InputTag("ak4GenJetsNoNu"),
     genParticles = cms.InputTag("genParticles"),
@@ -151,86 +152,44 @@ monitorPerf("L1TK",   "l1tLayer1:TK")
 monitorPerf("L1PF",    "l1tLayer1:PF")
 monitorPerf("L1Puppi", "l1tLayer1:Puppi")
 
+def addPhase1Jets():
+    process.extraPFStuff.add(process.l1tPhase1JetProducer9x9, process.l1tPhase1JetCalibrator9x9, process.l1tPhase1JetSumsProducer9x9)
+    process.extraPFStuff.add(process.l1tPhase1JetProducer9x9trimmed, process.l1tPhase1JetCalibrator9x9trimmed, process.l1tPhase1JetSumsProducer9x9trimmed)
+    process.l1pfjetTable.jets.phase19x9Puppi = cms.InputTag('l1tPhase1JetProducer9x9', "Uncalibratedl1tPhase1JetFromPfCandidates")    # uses layer1: puppi
+    process.l1pfjetTable.jets.phase19x9PuppiCorr = cms.InputTag('l1tPhase1JetCalibrator9x9', "l1tPhase1JetFromPfCandidates")
+    # process.l1pfjetTable.jets.phase19x9trimmedPuppi = cms.InputTag('l1tPhase1JetProducer9x9trimmed', "Uncalibratedl1tPhase1JetFromPfCandidates")
+    # process.l1pfjetTable.jets.phase19x9trimmedPuppiCorr = cms.InputTag('l1tPhase1JetCalibrator9x9trimmed', "l1tPhase1JetFromPfCandidates")
+    #process.l1pfmetTable.mets.scPuppiCorrMHT = cms.InputTag("l1tSCPFL1PuppiCorrectedEmulatorMHT")
 
-genParticlesForJetsNoNu = cms.EDProducer("InputGenJetsParticleSelector",
-    src = cms.InputTag("genParticles"),
-    ignoreParticleIDs = cms.vuint32(
-        1000022,
-        1000012, 1000014, 1000016,
-        2000012, 2000014, 2000016,
-        1000039, 5100039,
-        4000012, 4000014, 4000016,
-        9900012, 9900014, 9900016,
-        39,12,14,16),
-    partonicFinalState = cms.bool(False),
-    excludeResonances = cms.bool(False),
-    excludeFromResonancePids = cms.vuint32(12, 13, 14, 16),
-    tausAsJets = cms.bool(False)
-)
-
-genJetParticlesTask = cms.Task(genParticlesForJetsNoNu)
-genJetParticles = cms.Sequence(genJetParticlesTask)
+def addSeededConeJets():
+    process.extraPFStuff.add(process.L1TPFJetsTask)
+    process.l1pfjetTable.jets.scPuppiSim = cms.InputTag('l1tSCPFL1Puppi')    # vanilla seeded cone, sw imp so used l1t layer 1 puppi
+    process.l1pfjetTable.jets.scPuppi = cms.InputTag('l1tSCPFL1PuppiEmulator')    # hw imp so use deregionizer puppi
+    process.l1pfjetTable.jets.scPuppiCorr = cms.InputTag('l1tSCPFL1PuppiCorrectedEmulator')   # same as above but with corrections
 
 
-def addAK8jetsGen():
-
-    from RecoJets.JetProducers.ak8GenJets_cfi import ak8GenJets
-
-    ak8GenJetsNoNu = ak8GenJets.clone(src = "l1tLayer1:Puppi", doAreaFastjet = False) # genParticlesForJets
-    setattr(process, 'ak8GenJetsNoNu', ak8GenJetsNoNu)
-
-    recoAllGenJetsNoNuTask = cms.Task(ak8GenJetsNoNu)
-    recoAllGenJetsNoNu = cms.Sequence(recoAllGenJetsNoNuTask)
-    setattr(process, 'recoAllGenJetsNoNuTask', recoAllGenJetsNoNuTask)
-
-    process.extraPFStuff.add(process.recoAllGenJetsNoNuTask)
-
-    setattr(process.l1pfjetTable.jets, "AK8Gen", cms.InputTag('ak8GenJetsNoNu'))
+def addHistoSeededConeJets():
+    # Add above producers to the process
+    process.extraPFStuff.add(process.l1tLayer2Deregionizer, process.l1tHSCPFL1PuppiSeedProducer, process.l1tHSCPFL1Puppi, process.l1tHSCPFL1PuppiEmulatorSeedProducer, process.l1tHSCPFL1PuppiEmulator, process.l1tHSCPFL1PuppiCorrectedEmulator)
     
-    return None
-
-
-def addAK8jetsPF():
-
-    from RecoJets.JetProducers.ak8PFJets_cfi import ak8PFJets
-
-    ak8PFJetsNoNu = ak8PFJets.clone(src = "l1tLayer1:PF", doAreaFastjet = False)
-    setattr(process, 'ak8PFJetsNoNu', ak8PFJetsNoNu)
-
-    recoAllPFJetsNoNuTask = cms.Task(ak8PFJetsNoNu)
-    setattr(process, 'recoAllPFJetsNoNuTask', recoAllPFJetsNoNuTask)
-
-    process.extraPFStuff.add(process.recoAllPFJetsNoNuTask)
-    #process.extraPFStuff.add(ak8GenJetsNoNu)
-
-    recoAllGenJetsNoNu = cms.Sequence(recoAllPFJetsNoNuTask)
-
-    setattr(process.l1pfjetTable.jets, "AK8PF", cms.InputTag('ak8PFJetsNoNu'))
-    
-    return None
+    # Add jets to the jet table
+    process.l1pfjetTable.jets.hscPuppiSim = cms.InputTag('l1tHSCPFL1Puppi')
+    process.l1pfjetTable.jets.hscPuppi = cms.InputTag('l1tHSCPFL1PuppiEmulator')
+    process.l1pfjetTable.jets.hscPuppiCorr = cms.InputTag('l1tHSCPFL1PuppiCorrectedEmulator')
 
 
 def addJets():
 
-    process.extraPFStuff.add(process.L1TPFJetsTask)
-    process.l1pfjetTable.jets.scPuppi = cms.InputTag('l1tSCPFL1PuppiEmulator')
+    addPhase1Jets()
+    
+    addSeededConeJets()
 
-    process.extraPFStuff.add(process.L1TPFHistoSeedJetsTask)
-    process.l1pfjetTable.jets.wideHSC = cms.InputTag('l1t17x17HistoSeedsSCPFL1PuppiEmulator')
+    addHistoSeededConeJets()
+    
+    # Plot scPuppiSim, hscPuppiSim, phase19x9Puppi as all run on same input cands, non have corrections and none used trimming.
 
-    process.extraPFStuff.add(process.L1TPFHisto3x3SeedJetsTask)
-    process.l1pfjetTable.jets.wideHSC3x3 = cms.InputTag('l1t17x17Histo3x3SeedsSCPFL1PuppiEmulator')
-
-    process.extraPFStuff.add(process.L1TPFTrimmedHistoSeedJetsTask)
-    process.l1pfjetTable.jets.trimmedWideHSC = cms.InputTag('l1t17x17TrimmedHistoSeedsSCPFL1PuppiEmulator')
-
-    process.extraPFStuff.add(process.L1TPF15x15Histo3x3SeedJetsTask)
-    process.l1pfjetTable.jets.wide15x15HSC3x3 = cms.InputTag('l1t15x15Histo3x3SeedsSCPFL1PuppiEmulator')
-
-    return None
 
 addJets()
-addAK8jetsGen()
 
 
 def addJetConstituents(N):
