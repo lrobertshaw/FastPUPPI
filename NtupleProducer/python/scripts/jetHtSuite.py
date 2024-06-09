@@ -173,14 +173,20 @@ def makeEffHist(name, refArr, corrArr, corrThr, xmax, logxbins=None):
 
 from FastPUPPI.NtupleProducer.scripts.respPlots import whats as WHATS
 whats = WHATS + [
-    ('wideConeJetsVarySeedSize', [
-        ("17x17 HSC 1x1 seed", "wideHSC$",             ROOT.kViolet+1, 21, 1.5),
-        ("17x17 HSC 3x3 seed", "wideHSC3x3$", ROOT.kGreen+1, 34, 1.2),
-        ("15x15 HSC 3x3 seed",  "wide15x15HSC3x3Jets$",    ROOT.kGreen+3, 34, 1.1),
+    ('wideConeJets', [
+        ("HSC8", "hsc8PuppiSim$",  ROOT.kGreen+2, 34, 1.2),
+        ("SC8",  "sc8PuppiSim$",   ROOT.kRed+1, 20, 1.1),
     ]),
-    ('wideConeJets',[
-        ("Trimmed 17x17 HSC 1x1 seed",  "wide15x15HSC3x3Jets$",    ROOT.kGreen+3, 34, 1.1),
-        ("Seeded cone 8", "scPuppi$",    ROOT.kRed+2, 20, 0.9),
+    ('hscMaskSizes', [
+        ("HSC4 9x9 Mask", "hsc4PuppiSim9x9$",   ROOT.kGreen+0, 20, 2.0),
+        ("HSC4 7x7 Mask", "hsc4PuppiSim7x7$",   ROOT.kGray+1,    20, 1.8),
+        ("HSC4 5x5 Mask", "hsc4PuppiSim5x5$",   ROOT.kRed+0,     20, 1.4),
+        ("HSC4 3x3 Mask", "hsc4PuppiSim3x3$",   ROOT.kAzure+10,  20, 1.0),
+    ]),
+    ('l1jets_physperf', [
+        ("Histo", "phase19x9Puppi$",  ROOT.kViolet+1, 21, 1.5),
+        ("SC4", "scPuppiSim$",    ROOT.kGreen+2, 34, 1.2),
+        ("HSC4",  "hscPuppiSim$", ROOT.kRed+1, 20, 1.1),
     ]),
     ('oldcomp',[
         ("Calo",      "L1OldCalo",        ROOT.kViolet+2, 20, 1.5),
@@ -197,7 +203,7 @@ whats = WHATS + [
         ("Puppi4MET", "L1PuppiForMET", ROOT.kAzure+10, 21, 1.5),
     ]),
     ('l1pfpu_metref',[
-        ("Calo",       "L1Calo$",     ROOT.kViolet+1, 21, 1.5),
+        ("Calo",       "L1Calo$",                 ROOT.kViolet+1, 21, 1.5),
         ("TK #Deltaz", "L1TKV5$",     ROOT.kGreen+1, 34, 1.2),
         ("RefTK",      "RefL1TrackerEtMiss$",     ROOT.kGreen+3, 34, 1.2),
         ("Puppi",      "L1Puppi$",    ROOT.kRed+1, 20, 1.1),
@@ -284,7 +290,7 @@ whats = WHATS + [
         ("EleEE Emu",  "TkEleEETkEmu",   ROOT.kAzure+2,   20, 1.0),
     ]),
     ('l1tkeg_test_EB_tkemu',[
-        ("Gen",      "GenEl",   ROOT.kGreen+0, 20, 2.0),
+        ("Gen",      "GenEl",            ROOT.kGreen+0, 20, 2.0),
         ("EleEB Sim",  "TkEleEB",        ROOT.kGray+1,    20, 1.8),
         ("EleEB Flt",  "TkEleEBTkFlt",   ROOT.kRed+0,     20, 1.4),
         ("EleEB Emu",  "TkEleEBTkEmu",   ROOT.kAzure+10,  20, 1.0),
