@@ -147,46 +147,62 @@ def saveCands(label, tag):
 
 ##############################################################################################################################################################
 
-# Jets for HSC4 physics performance vs SC4 and histojets studies
-histo9x9Sim = Jets(label="histo9x9Sim", tag=cms.InputTag('l1tPhase1JetProducer9x9', "Uncalibratedl1tPhase1JetFromPfCandidates"), task=process.L1TPFJetsPhase1Task_9x9)
-sc4Sim = Jets(label="sc4PuppiSim", tag=cms.InputTag("l1tSCPFL1Puppi"), task=process.L1TPFJetsTask)
-hsc4Sim = Jets(label="hsc4PuppiSim", tag=cms.InputTag("l1tHSCPFL1Puppi"), task=process.L1TPFHSCJetsSimTask)
-#############################################################################################################################################################
+if wideJets == False:
+    """ HISTOJETS 9X9 """
+    # Untrimmed
+    histo9x9Sim = Jets(label="histo9x9Sim", tag=cms.InputTag('l1tPhase1JetProducer9x9', "Uncalibratedl1tPhase1JetFromPfCandidates"), task=process.L1TPFJetsPhase1Task_9x9)
+    histo9x9Emu = Jets(label="histo9x9Emu", tag=cms.InputTag('l1tPhase1PuppiJetProducer9x9', "Uncalibratedl1tPhase1JetFromPuppiCandidates"), task=process.L1TPuppiJetsPhase1Task_9x9)
+    # Trimmed
+    histo9x9trimmedSim = Jets(label="histo9x9trimmedSim", tag=cms.InputTag('l1tPhase1JetProducer9x9trimmed', "Uncalibratedl1tPhase1JetFromPfCandidates"), task=process.L1TPFJetsPhase1Task_9x9trimmed)
+    histo9x9trimmedEmu = Jets(label="histo9x9trimmedEmu", tag=cms.InputTag('l1tPhase1PuppiJetProducer9x9trimmed', "Uncalibratedl1tPhase1JetFromPuppiCandidates"), task=process.L1TPuppiJetsPhase1Task_9x9trimmed)
 
-# Unused SC4 and HSC4 emulator jets -- jets running more like as in firmware and using deregionizer cands
-sc4Emu = Jets(label="sc4PuppiEmu", tag=cms.InputTag("l1tSCPFL1PuppiEmulator"), task=process.L1TPFJetsTask)
-hsc4Emu = Jets(label="hsc4PuppiEmu", tag=cms.InputTag("l1tHSCPFL1PuppiEmulator"), task=process.L1TPFHSCJetsEmuTask)
-##############################################################################################################################################################
+    """ SEEDED CONE 4 """
+    sc4Sim = Jets(label="sc4PuppiSim", tag=cms.InputTag("l1tSCPFL1Puppi"), task=process.L1TPFJetsTask)
+    sc4Emu = Jets(label="sc4PuppiEmu", tag=cms.InputTag("l1tSCPFL1PuppiEmulator"), task=process.L1TPFJetsTask)
 
-# HSC4 jets for mask size studies
-# hsc4Sim9x9mask = Jets(label="hsc4PuppiSim9x9", tag=cms.InputTag("l1tHSCPFL1Puppi9x9Sim"), task=process.L1TPFHistoSeedJetsMaskTask)
-# hsc4Sim7x7mask = Jets(label="hsc4PuppiSim7x7", tag=cms.InputTag("l1tHSCPFL1Puppi7x7Sim"), task=process.L1TPFHistoSeedJetsMaskTask)
-# hsc4Sim5x5mask = Jets(label="hsc4PuppiSim5x5", tag=cms.InputTag("l1tHSCPFL1Puppi5x5Sim"), task=process.L1TPFHistoSeedJetsMaskTask)
-# hsc4Sim3x3mask = Jets(label="hsc4PuppiSim3x3", tag=cms.InputTag("l1tHSCPFL1Puppi3x3Sim"), task=process.L1TPFHistoSeedJetsMaskTask)
-##############################################################################################################################################################
+    """ HISTO-SEEDED CONE 4 """
+    # Untrimmed
+    hsc4Sim = Jets(label="hsc4PuppiSim", tag=cms.InputTag("l1tHSCPFL1Puppi"), task=process.L1TPFHSCJetsSimTask)
+    hsc4Emu = Jets(label="hsc4PuppiEmu", tag=cms.InputTag("l1tHSCPFL1PuppiEmulator"), task=process.L1TPFHSCJetsEmuTask)
+    # Trimmed
+    hsc4SimTrimmed = Jets(label="hsc4PuppiSimTrimmed", tag=cms.InputTag("l1tHSCPFL1PuppiTrimmed"), task=process.L1TPFHSCJetsSimTaskTrimmed)
+    hsc4EmuTrimmed = Jets(label="hsc4PuppiEmuTrimmed", tag=cms.InputTag("l1tHSCPFL1PuppiEmulatorTrimmed"), task=process.L1TPFHSCJetsEmuTaskTrimmed)
 
-# wide cone jets
-#ak8 = Jets(label="AK8", tag=cms.InputTag("ak8GenJetsNoNu"), task=process.ak8GenJetsNoNuTask)
-sc8Sim = Jets(label="sc8PuppiSim", tag=cms.InputTag("l1tSCPFL1PuppiSimWide"), task=process.L1TPFWideJetsSimTask)
-sc8Emu = Jets(label="sc8PuppiEmu", tag=cms.InputTag("l1tSCPFL1PuppiEmuWide"), task=process.L1TPFWideJetsEmuTask)
-hsc8Sim = Jets(label="hsc8PuppiSim", tag=cms.InputTag("l1tHSCPFL1PuppiSimWide"), task=process.L1TPFHSCWideJetsSimTask)
-hsc8Emu = Jets(label="hsc8PuppiEmu", tag=cms.InputTag("l1tHSCPFL1PuppiEmuWide"), task=process.L1TPFHSCWideJetsEmuTask)
-##############################################################################################################################################################
+    """ HISTO-SEEDED CONE 4 EMULATOR JETS WITH DIFFERENT MASK SIZES """
+    # Untrimmed
+    hsc4Emu9x9mask = Jets(label="hsc4PuppiEmu9x9", tag=cms.InputTag("l1tHSCPFL1Puppi9x9Emu"), task=process.l1tHSCPFL1PuppiEmuMasksTask)
+    hsc4Emu7x7mask = Jets(label="hsc4PuppiEmu7x7", tag=cms.InputTag("l1tHSCPFL1Puppi7x7Emu"), task=process.l1tHSCPFL1PuppiEmuMasksTask)
+    hsc4Emu5x5mask = Jets(label="hsc4PuppiEmu5x5", tag=cms.InputTag("l1tHSCPFL1Puppi5x5Emu"), task=process.l1tHSCPFL1PuppiEmuMasksTask)
+    hsc4Emu3x3mask = Jets(label="hsc4PuppiEmu3x3", tag=cms.InputTag("l1tHSCPFL1Puppi3x3Emu"), task=process.l1tHSCPFL1PuppiEmuMasksTask)
+    # Trimmed
+    hsc4Emu9x9maskTrimmed = Jets(label="hsc4PuppiEmu9x9Trimmed", tag=cms.InputTag("l1tHSCPFL1Puppi9x9EmuTrimmed"), task=process.l1tHSCPFL1PuppiEmuMasksTaskTrimmed)
+    hsc4Emu7x7maskTrimmed = Jets(label="hsc4PuppiEmu7x7Trimmed", tag=cms.InputTag("l1tHSCPFL1Puppi7x7EmuTrimmed"), task=process.l1tHSCPFL1PuppiEmuMasksTaskTrimmed)
+    hsc4Emu5x5maskTrimmed = Jets(label="hsc4PuppiEmu5x5Trimmed", tag=cms.InputTag("l1tHSCPFL1Puppi5x5EmuTrimmed"), task=process.l1tHSCPFL1PuppiEmuMasksTaskTrimmed)
+    hsc4Emu3x3maskTrimmed = Jets(label="hsc4PuppiEmu3x3Trimmed", tag=cms.InputTag("l1tHSCPFL1Puppi3x3EmuTrimmed"), task=process.l1tHSCPFL1PuppiEmuMasksTaskTrimmed)
 
-addJets(*sc8Sim)
-addJets(*hsc8Sim)
+    """ HISTO-SEEDED CONE 4 EMULATOR JETS WITH DIFFERENT MASK AND SEED SIZES """
+    # Untrimmed
+    hsc4Emu9x9mask1x1seed = Jets(label="hsc4PuppiEmu9x9Mask1x1Seed", tag=cms.InputTag("l1tHSCPFL1Puppi9x9Seed1x1Emu"), task=process.l1tHSCMaskSeedSizesJetsTask)
+    hsc4Emu9x9mask3x3seed = Jets(label="hsc4PuppiEmu9x9Mask3x3Seed", tag=cms.InputTag("l1tHSCPFL1Puppi9x9Seed3x3Emu"), task=process.l1tHSCMaskSeedSizesJetsTask)
+    hsc4Emu7x7mask1x1seed = Jets(label="hsc4PuppiEmu7x7Mask1x1Seed", tag=cms.InputTag("l1tHSCPFL1Puppi7x7Seed1x1Emu"), task=process.l1tHSCMaskSeedSizesJetsTask)
+    hsc4Emu7x7mask3x3seed = Jets(label="hsc4PuppiEmu7x7Mask3x3Seed", tag=cms.InputTag("l1tHSCPFL1Puppi7x7Seed3x3Emu"), task=process.l1tHSCMaskSeedSizesJetsTask)
+    # Trimmed
+    hsc4Emu9x9mask1x1seedTrimmed = Jets(label="hsc4PuppiEmu9x9Mask1x1SeedTrimmed", tag=cms.InputTag("l1tHSCPFL1Puppi9x9Seed1x1EmuTrimmed"), task=process.l1tHSCMaskSeedSizesJetsTaskTrimmed)
+    hsc4Emu9x9mask3x3seedTrimmed = Jets(label="hsc4PuppiEmu9x9Mask3x3SeedTrimmed", tag=cms.InputTag("l1tHSCPFL1Puppi9x9Seed3x3EmuTrimmed"), task=process.l1tHSCMaskSeedSizesJetsTaskTrimmed)
+    hsc4Emu7x7mask1x1seedTrimmed = Jets(label="hsc4PuppiEmu7x7Mask1x1SeedTrimmed", tag=cms.InputTag("l1tHSCPFL1Puppi7x7Seed1x1EmuTrimmed"), task=process.l1tHSCMaskSeedSizesJetsTaskTrimmed)
+    hsc4Emu7x7mask3x3seedTrimmed = Jets(label="hsc4PuppiEmu7x7Mask3x3SeedTrimmed", tag=cms.InputTag("l1tHSCPFL1Puppi7x7Seed3x3EmuTrimmed"), task=process.l1tHSCMaskSeedSizesJetsTaskTrimmed)
 
-# process.extraPFStuff.add(process.l1tHSCPFL1Puppi9x9SimTask)
-# process.l1pfjetTable.jets.hsc4PuppiSim9x9 = cms.InputTag("l1tHSCPFL1Puppi9x9Sim")
+if wideJets == True:
+    """ GENERATOR JETS """
+    ak8 = Jets(label="AK8", tag=cms.InputTag("ak8GenJetsNoNu"), task=process.ak8GenJetsNoNuTask)
 
-# process.extraPFStuff.add(process.l1tHSCPFL1Puppi7x7SimTask)
-# process.l1pfjetTable.jets.hsc4PuppiSim7x7 = cms.InputTag("l1tHSCPFL1Puppi7x7Sim")
+    """ SEEDED CONE 8"""
+    sc8Sim = Jets(label="sc8PuppiSim", tag=cms.InputTag("l1tSCPFL1PuppiSimWide"), task=process.L1TPFWideJetsSimTask)
+    sc8Emu = Jets(label="sc8PuppiEmu", tag=cms.InputTag("l1tSCPFL1PuppiEmuWide"), task=process.L1TPFWideJetsEmuTask)
 
-# process.extraPFStuff.add(process.l1tHSCPFL1Puppi5x5SimTask)
-# process.l1pfjetTable.jets.hsc4PuppiSim5x5 = cms.InputTag("l1tHSCPFL1Puppi5x5Sim")
-
-# process.extraPFStuff.add(process.l1tHSCPFL1Puppi3x3SimTask)
-# process.l1pfjetTable.jets.hsc4PuppiSim3x3 = cms.InputTag("l1tHSCPFL1Puppi3x3Sim")
+    """ HISTO-SEEDED CONE 8 """
+    hsc8Sim = Jets(label="hsc8PuppiSim", tag=cms.InputTag("l1tHSCPFL1PuppiSimWide"), task=process.L1TPFHSCWideJetsSimTask)
+    hsc8Emu = Jets(label="hsc8PuppiEmu", tag=cms.InputTag("l1tHSCPFL1PuppiEmuWide"), task=process.L1TPFHSCWideJetsEmuTask)
 
 # addJetConstituents(N=128)  # 128 by default
 
@@ -214,33 +230,47 @@ process.outnano = cms.OutputModule("NanoAODOutputModule",
 )
 process.end = cms.EndPath(process.outnano)
 
+
 if False:
-    
-    def L1JetsStudies():
-        addJets(*histo9x9Sim)
-        addJets(*sc4Sim)
-        addJets(*hsc4Sim)
+    """ NOTE: useExternalSeeds FLAG DOESN'T WORK WITH SIM JETS, HW FLAG MUST BE TRUE """
+    def regJetsStudies():
+        # Untrimmed
+        addJets(*histo9x9Emu)
+        addJets(*sc4Emu)
+        addJets(*hsc4Emu)
+        # Trimmed
+        addJets(*histo9x9trimmedEmu)
+        addJets(*sc4Emu)
+        addJets(*hsc4EmuTrimmed)
 
     def maskSizeStudies():
-        addJets(*hsc4Sim9x9mask)
-        addJets(*hsc4Sim7x7mask)
-        addJets(*hsc4Sim5x5mask)
-        addJets(*hsc4Sim3x3mask)
-        # # Without addJets fn
-        # process.extraPFStuff.add(process.L1TPFHistoSeedJetsMaskTask)
-        # process.l1pfjetTable.jets.hsc4PuppiSim9x9 = cms.InputTag("l1tHSCPFL1Puppi9x9Sim")
-        # process.l1pfjetTable.jets.hsc4PuppiSim7x7 = cms.InputTag("l1tHSCPFL1Puppi7x7Sim")
-        # process.l1pfjetTable.jets.hsc4PuppiSim5x5 = cms.InputTag("l1tHSCPFL1Puppi5x5Sim")
-        # process.l1pfjetTable.jets.hsc4PuppiSim3x3 = cms.InputTag("l1tHSCPFL1Puppi3x3Sim")
+        # Untrimmed
+        addJets(*hsc4Emu9x9mask)
+        addJets(*hsc4Emu7x7mask)
+        addJets(*hsc4Emu5x5mask)
+        addJets(*hsc4Emu3x3mask)
+        # Trimmed
+        addJets(*hsc4Emu9x9maskTrimmed)
+        addJets(*hsc4Emu7x7maskTrimmed)
+        addJets(*hsc4Emu5x5maskTrimmed)
+        addJets(*hsc4Emu3x3maskTrimmed)
 
     def seedSizeStudies():
         pass
 
-    def wideStudies():
-        addJets(*ak8)
-        addJets(*sc8Sim)
-        addJets(*hsc8Sim)
-        addJetConstituents(N=128)  # 128 by default
-        saveCands(label="l1tLayer2DeregionizerPUPPI", tag="l1tLayer2Deregionizer:Puppi")    # save emu PUPPI cands
-        saveCands(label="l1tLayer1PUPPI", tag="l1tLayer1:Puppi")    # save sim PUPPI cands
-        saveCands(label="GenParticles", tag = "genParticles")    # Include genParticles by default
+    def maskAndSeedStudies():
+        # Untrimmed
+        addJets(*hsc4Emu9x9mask1x1seed)
+        addJets(*hsc4Emu9x9mask3x3seed)
+        addJets(*hsc4Emu7x7mask1x1seed)
+        addJets(*hsc4Emu7x7mask3x3seed)
+        # Trimmed
+        addJets(*hsc4Emu9x9mask1x1seedTrimmed)
+        addJets(*hsc4Emu9x9mask3x3seedTrimmed)
+        addJets(*hsc4Emu7x7mask1x1seedTrimmed)
+        addJets(*hsc4Emu7x7mask3x3seedTrimmed)
+
+
+    def wideJetStudies():
+        addJets(*sc8Emu)
+        addJets(*hsc8Emu)

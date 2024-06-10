@@ -1,9 +1,9 @@
 # SCRIPT MAKES PLOTS FOR JET AND HT/MHT TRIGGER PERFORMANCE FOR FIRST 12 JETS
 
 # Define variables
-sig=/shared/scratch/wq22321/regCone/maskSizeStudies/ttbar2/ttbar_maskSizes.root
-bkg=/shared/scratch/wq22321/regCone/maskSizeStudies/singneut2/singNeut_maskSizes.root
-outdir=plots/maskSizes
+sig=/shared/scratch/wq22321/regCone/maskSize/ttbar/ttbar.root
+bkg=/shared/scratch/wq22321/regCone/maskSize/singneut/singneut.root
+outdir=plots/maskSize2
 what=hscMaskSizes
 
 # Make JECs
