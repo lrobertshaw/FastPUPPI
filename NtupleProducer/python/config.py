@@ -7,7 +7,7 @@ from collections import namedtuple
 Jets = namedtuple("Jets", "label tag task")
 
 inputFile = str(sys.argv[-1])    # root://eoscms.cern.ch//eos/cms//store/cmst3/group/l1tr/gpetrucc/12_5_X/NewInputs125X/150223/VH_PtHat125_PU200/inputs125X_VH_PtHat125_PU200_job6.root
-wideJets = True
+wideJets = False
 nEvents = -1
 print(f"\nRunning over file: {inputFile}\nWide jets: {wideJets}\nNumber of events: {nEvents}\n")
 
@@ -203,6 +203,21 @@ if wideJets == True:
     """ HISTO-SEEDED CONE 8 """
     hsc8Sim = Jets(label="hsc8PuppiSim", tag=cms.InputTag("l1tHSCPFL1PuppiSimWide"), task=process.L1TPFHSCWideJetsSimTask)
     hsc8Emu = Jets(label="hsc8PuppiEmu", tag=cms.InputTag("l1tHSCPFL1PuppiEmuWide"), task=process.L1TPFHSCWideJetsEmuTask)
+
+
+# HISTO
+addJets(*histo9x9Emu)
+addJets(*histo9x9trimmedEmu)
+# SC4
+addJets(*sc4Emu)
+# HSC4
+addJets(*hsc4Emu)                # HSC4 9X9 UNTRIMMED
+addJets(*hsc4EmuTrimmed)         # HSC4 9X9 TRIMMED
+addJets(*hsc4Emu7x7mask)         # HSC4 7X7 UNTRIMMED
+addJets(*hsc4Emu7x7maskTrimmed)  # HSC4 7X7 TRIMMED
+
+
+
 
 # addJetConstituents(N=128)  # 128 by default
 

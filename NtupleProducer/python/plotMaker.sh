@@ -1,10 +1,10 @@
 # SCRIPT MAKES PLOTS FOR JET AND HT/MHT TRIGGER PERFORMANCE FOR FIRST 12 JETS
 
 # Define variables
-sig=/shared/scratch/wq22321/regCone/maskSize/ttbar/ttbar.root
-bkg=/shared/scratch/wq22321/regCone/maskSize/singneut/singneut.root
-outdir=plots/maskSize2
-what=hscMaskSizes
+sig=/shared/scratch/wq22321/regCone/maskSizes/ttbar.root
+bkg=/shared/scratch/wq22321/regCone/maskSizes/singneut.root
+outdir=plots/mask_sizes_trimmed
+what=hscMaskSizesTrimmed
 
 # Make JECs
 python3 scripts/makeJecs.py "$sig" -A -o "$what"JECs.root

@@ -174,19 +174,51 @@ def makeEffHist(name, refArr, corrArr, corrThr, xmax, logxbins=None):
 from FastPUPPI.NtupleProducer.scripts.respPlots import whats as WHATS
 whats = WHATS + [
     ('wideConeJets', [
-        ("HSC8", "hsc8PuppiSim$",  ROOT.kGreen+2, 34, 1.2),
-        ("SC8",  "sc8PuppiSim$",   ROOT.kRed+1, 20, 1.1),
+        ("HSC8", "hsc8PuppiEmu$",  ROOT.kGreen+2, 34, 1.2),
+        ("SC8",  "sc8PuppiEmu$",   ROOT.kRed+1, 20, 1.1),
+    ]),
+    ('miscJets', [
+        ("Histojets", "histo9x9Emu$",   ROOT.kGreen+0, 20, 2.0),
+        ("Histojets trimmed", "histo9x9trimmedEmu$",   ROOT.kGray+1,    20, 1.8),
+        ("Seeded cone", "sc4PuppiEmu$",   ROOT.kRed+0,     20, 1.4),
+        ("Histo-seeded cone", "hsc4PuppiEmu$",   ROOT.kAzure+10,  20, 1.0),
+        ("Histo-seeded cone trimmed", "hsc4PuppiEmuTrimmed$", ROOT.kViolet+1, 21, 1.5),
+        ("Histo-seeded cone 7x7 mask", "hsc4PuppiEmu7x7$", ROOT.kBlue+1, 21, 1.5),
+        ("Histo-seeded cone 7x7 mask trimmed", "hsc4PuppiEmu7x7Trimmed$", ROOT.kOrange+7, 24, 1.5),
+    ]),
+    ('hscMaskSeedSizesTrimmed', [
+        ("HSC4 9x9 Mask, 1x1 Seed", "hsc4PuppiEmu9x9Mask1x1SeedTrimmed$",   ROOT.kGreen+0, 20, 2.0),
+        ("HSC4 9x9 Mask, 3x3 Seed", "hsc4PuppiEmu9x9Mask3x3SeedTrimmed$",   ROOT.kGray+1,    20, 1.8),
+        ("HSC4 7x7 Mask, 1x1 Seed", "hsc4PuppiEmu7x7Mask1x1SeedTrimmed$",   ROOT.kRed+0,     20, 1.4),
+        ("HSC4 7x7 Mask, 3x3 Seed", "hsc4PuppiEmu7x7Mask3x3SeedTrimmed$",   ROOT.kAzure+10,  20, 1.0),
+    ]),
+    ('hscMaskSeedSizes', [
+        ("HSC4 9x9 Mask, 1x1 Seed", "hsc4PuppiEmu9x9Mask1x1Seed$",   ROOT.kGreen+0, 20, 2.0),
+        ("HSC4 9x9 Mask, 3x3 Seed", "hsc4PuppiEmu9x9Mask3x3Seed$",   ROOT.kGray+1,    20, 1.8),
+        ("HSC4 7x7 Mask, 1x1 Seed", "hsc4PuppiEmu7x7Mask1x1Seed$",   ROOT.kRed+0,     20, 1.4),
+        ("HSC4 7x7 Mask, 3x3 Seed", "hsc4PuppiEmu7x7Mask3x3Seed$",   ROOT.kAzure+10,  20, 1.0),
+    ]),
+    ('hscMaskSizesTrimmed', [
+        ("HSC4 9x9 Mask", "hsc4PuppiEmu9x9Trimmed$",   ROOT.kGreen+0, 20, 2.0),
+        ("HSC4 7x7 Mask", "hsc4PuppiEmu7x7Trimmed$",   ROOT.kGray+1,    20, 1.8),
+        ("HSC4 5x5 Mask", "hsc4PuppiEmu5x5Trimmed$",   ROOT.kRed+0,     20, 1.4),
+        ("HSC4 3x3 Mask", "hsc4PuppiEmu3x3Trimmed$",   ROOT.kAzure+10,  20, 1.0),
     ]),
     ('hscMaskSizes', [
-        ("HSC4 9x9 Mask", "hsc4PuppiSim9x9$",   ROOT.kGreen+0, 20, 2.0),
-        ("HSC4 7x7 Mask", "hsc4PuppiSim7x7$",   ROOT.kGray+1,    20, 1.8),
-        ("HSC4 5x5 Mask", "hsc4PuppiSim5x5$",   ROOT.kRed+0,     20, 1.4),
-        ("HSC4 3x3 Mask", "hsc4PuppiSim3x3$",   ROOT.kAzure+10,  20, 1.0),
+        ("HSC4 9x9 Mask", "hsc4PuppiEmu9x9$",   ROOT.kGreen+0, 20, 2.0),
+        ("HSC4 7x7 Mask", "hsc4PuppiEmu7x7$",   ROOT.kGray+1,    20, 1.8),
+        ("HSC4 5x5 Mask", "hsc4PuppiEmu5x5$",   ROOT.kRed+0,     20, 1.4),
+        ("HSC4 3x3 Mask", "hsc4PuppiEmu3x3$",   ROOT.kAzure+10,  20, 1.0),
+    ]),
+    ('l1jets_physperf_trimmed', [
+        ("Histo", "histo9x9trimmedEmu$",  ROOT.kViolet+1, 21, 1.5),
+        ("SC4", "sc4PuppiEmu$",    ROOT.kGreen+2, 34, 1.2),
+        ("HSC4",  "hsc4PuppiEmuTrimmed$", ROOT.kRed+1, 20, 1.1),
     ]),
     ('l1jets_physperf', [
-        ("Histo", "phase19x9Puppi$",  ROOT.kViolet+1, 21, 1.5),
-        ("SC4", "scPuppiSim$",    ROOT.kGreen+2, 34, 1.2),
-        ("HSC4",  "hscPuppiSim$", ROOT.kRed+1, 20, 1.1),
+        ("Histo", "histo9x9Emu$",  ROOT.kViolet+1, 21, 1.5),
+        ("SC4", "sc4PuppiEmu$",    ROOT.kGreen+2, 34, 1.2),
+        ("HSC4",  "hsc4PuppiEmu$", ROOT.kRed+1, 20, 1.1),
     ]),
     ('oldcomp',[
         ("Calo",      "L1OldCalo",        ROOT.kViolet+2, 20, 1.5),
