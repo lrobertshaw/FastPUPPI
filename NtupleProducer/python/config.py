@@ -7,7 +7,7 @@ from collections import namedtuple
 Jets = namedtuple("Jets", "label tag task")
 
 inputFile = str(sys.argv[-1])    # root://eoscms.cern.ch//eos/cms//store/cmst3/group/l1tr/gpetrucc/12_5_X/NewInputs125X/150223/VH_PtHat125_PU200/inputs125X_VH_PtHat125_PU200_job6.root
-wideJets = False
+wideJets = True
 nEvents = -1
 print(f"\nRunning over file: {inputFile}\nWide jets: {wideJets}\nNumber of events: {nEvents}\n")
 
@@ -150,35 +150,34 @@ def saveCands(label, tag):
 if wideJets == False:
     """ HISTOJETS 9X9 """
     # Untrimmed
-    histo9x9Sim = Jets(label="histo9x9Sim", tag=cms.InputTag('l1tPhase1JetProducer9x9', "Uncalibratedl1tPhase1JetFromPfCandidates"), task=process.L1TPFJetsPhase1Task_9x9)
     histo9x9Emu = Jets(label="histo9x9Emu", tag=cms.InputTag('l1tPhase1PuppiJetProducer9x9', "Uncalibratedl1tPhase1JetFromPuppiCandidates"), task=process.L1TPuppiJetsPhase1Task_9x9)
     # Trimmed
-    histo9x9trimmedSim = Jets(label="histo9x9trimmedSim", tag=cms.InputTag('l1tPhase1JetProducer9x9trimmed', "Uncalibratedl1tPhase1JetFromPfCandidates"), task=process.L1TPFJetsPhase1Task_9x9trimmed)
-    histo9x9trimmedEmu = Jets(label="histo9x9trimmedEmu", tag=cms.InputTag('l1tPhase1PuppiJetProducer9x9trimmed', "Uncalibratedl1tPhase1JetFromPuppiCandidates"), task=process.L1TPuppiJetsPhase1Task_9x9trimmed)
+    histo9x9trimmedEmu = Jets(label="histo9x9trimmedEmu", tag=cms.InputTag('l1tPhase1PuppiJetProducer9x9trimmed', "Uncalibratedl1tPhase1TrimmedJetFromPuppiCandidates"), task=process.L1TPuppiJetsPhase1Task_9x9trimmed)
+
+    """ HISTOJETS 7x7 """
+    histo7x7Emu = Jets(label="histo7x7Emu", tag=cms.InputTag('l1tPhase1PuppiJetProducer7x7', "Uncalibratedl1tPhase1Jet7x7FromPuppiCandidates"), task=process.L1TPuppiJetsPhase1Task_7x7)
+    histo7x7trimmedEmu = Jets(label="histo7x7trimmedEmu", tag=cms.InputTag('l1tPhase1PuppiJetProducer7x7trimmed', "Uncalibratedl1tPhase1Trimmed7x7JetFromPuppiCandidates"), task=process.L1TPuppiJetsPhase1Task_7x7trimmed)
 
     """ SEEDED CONE 4 """
-    sc4Sim = Jets(label="sc4PuppiSim", tag=cms.InputTag("l1tSCPFL1Puppi"), task=process.L1TPFJetsTask)
     sc4Emu = Jets(label="sc4PuppiEmu", tag=cms.InputTag("l1tSCPFL1PuppiEmulator"), task=process.L1TPFJetsTask)
 
     """ HISTO-SEEDED CONE 4 """
     # Untrimmed
-    hsc4Sim = Jets(label="hsc4PuppiSim", tag=cms.InputTag("l1tHSCPFL1Puppi"), task=process.L1TPFHSCJetsSimTask)
     hsc4Emu = Jets(label="hsc4PuppiEmu", tag=cms.InputTag("l1tHSCPFL1PuppiEmulator"), task=process.L1TPFHSCJetsEmuTask)
     # Trimmed
-    hsc4SimTrimmed = Jets(label="hsc4PuppiSimTrimmed", tag=cms.InputTag("l1tHSCPFL1PuppiTrimmed"), task=process.L1TPFHSCJetsSimTaskTrimmed)
     hsc4EmuTrimmed = Jets(label="hsc4PuppiEmuTrimmed", tag=cms.InputTag("l1tHSCPFL1PuppiEmulatorTrimmed"), task=process.L1TPFHSCJetsEmuTaskTrimmed)
 
     """ HISTO-SEEDED CONE 4 EMULATOR JETS WITH DIFFERENT MASK SIZES """
     # Untrimmed
-    hsc4Emu9x9mask = Jets(label="hsc4PuppiEmu9x9", tag=cms.InputTag("l1tHSCPFL1Puppi9x9Emu"), task=process.l1tHSCPFL1PuppiEmuMasksTask)
-    hsc4Emu7x7mask = Jets(label="hsc4PuppiEmu7x7", tag=cms.InputTag("l1tHSCPFL1Puppi7x7Emu"), task=process.l1tHSCPFL1PuppiEmuMasksTask)
-    hsc4Emu5x5mask = Jets(label="hsc4PuppiEmu5x5", tag=cms.InputTag("l1tHSCPFL1Puppi5x5Emu"), task=process.l1tHSCPFL1PuppiEmuMasksTask)
-    hsc4Emu3x3mask = Jets(label="hsc4PuppiEmu3x3", tag=cms.InputTag("l1tHSCPFL1Puppi3x3Emu"), task=process.l1tHSCPFL1PuppiEmuMasksTask)
+    hsc4Emu9x9mask = Jets(label="hsc4PuppiEmu9x9", tag=cms.InputTag("l1tHSCPFL1Puppi9x9Emu"), task=process.l1tHSCPFL1Puppi9x9EmuTask)
+    hsc4Emu7x7mask = Jets(label="hsc4PuppiEmu7x7", tag=cms.InputTag("l1tHSCPFL1Puppi7x7Emu"), task=process.l1tHSCPFL1Puppi7x7EmuTask)
+    hsc4Emu5x5mask = Jets(label="hsc4PuppiEmu5x5", tag=cms.InputTag("l1tHSCPFL1Puppi5x5Emu"), task=process.l1tHSCPFL1Puppi5x5EmuTask)
+    hsc4Emu3x3mask = Jets(label="hsc4PuppiEmu3x3", tag=cms.InputTag("l1tHSCPFL1Puppi3x3Emu"), task=process.l1tHSCPFL1Puppi3x3EmuTask)
     # Trimmed
-    hsc4Emu9x9maskTrimmed = Jets(label="hsc4PuppiEmu9x9Trimmed", tag=cms.InputTag("l1tHSCPFL1Puppi9x9EmuTrimmed"), task=process.l1tHSCPFL1PuppiEmuMasksTaskTrimmed)
-    hsc4Emu7x7maskTrimmed = Jets(label="hsc4PuppiEmu7x7Trimmed", tag=cms.InputTag("l1tHSCPFL1Puppi7x7EmuTrimmed"), task=process.l1tHSCPFL1PuppiEmuMasksTaskTrimmed)
-    hsc4Emu5x5maskTrimmed = Jets(label="hsc4PuppiEmu5x5Trimmed", tag=cms.InputTag("l1tHSCPFL1Puppi5x5EmuTrimmed"), task=process.l1tHSCPFL1PuppiEmuMasksTaskTrimmed)
-    hsc4Emu3x3maskTrimmed = Jets(label="hsc4PuppiEmu3x3Trimmed", tag=cms.InputTag("l1tHSCPFL1Puppi3x3EmuTrimmed"), task=process.l1tHSCPFL1PuppiEmuMasksTaskTrimmed)
+    hsc4Emu9x9maskTrimmed = Jets(label="hsc4PuppiEmu9x9Trimmed", tag=cms.InputTag("l1tHSCPFL1Puppi9x9EmuTrimmed"), task=process.l1tHSCPFL1Puppi9x9EmuTaskTrimmed)
+    hsc4Emu7x7maskTrimmed = Jets(label="hsc4PuppiEmu7x7Trimmed", tag=cms.InputTag("l1tHSCPFL1Puppi7x7EmuTrimmed"), task=process.l1tHSCPFL1Puppi7x7EmuTaskTrimmed)
+    hsc4Emu5x5maskTrimmed = Jets(label="hsc4PuppiEmu5x5Trimmed", tag=cms.InputTag("l1tHSCPFL1Puppi5x5EmuTrimmed"), task=process.l1tHSCPFL1Puppi5x5EmuTaskTrimmed)
+    hsc4Emu3x3maskTrimmed = Jets(label="hsc4PuppiEmu3x3Trimmed", tag=cms.InputTag("l1tHSCPFL1Puppi3x3EmuTrimmed"), task=process.l1tHSCPFL1Puppi3x3EmuTaskTrimmed)
 
     """ HISTO-SEEDED CONE 4 EMULATOR JETS WITH DIFFERENT MASK AND SEED SIZES """
     # Untrimmed
@@ -194,29 +193,20 @@ if wideJets == False:
 
 if wideJets == True:
     """ GENERATOR JETS """
-    ak8 = Jets(label="AK8", tag=cms.InputTag("ak8GenJetsNoNu"), task=process.ak8GenJetsNoNuTask)
+    #ak8 = Jets(label="AK8", tag=cms.InputTag("ak8GenJetsNoNu"), task=process.ak8GenJetsNoNuTask)
 
     """ SEEDED CONE 8"""
     sc8Sim = Jets(label="sc8PuppiSim", tag=cms.InputTag("l1tSCPFL1PuppiSimWide"), task=process.L1TPFWideJetsSimTask)
     sc8Emu = Jets(label="sc8PuppiEmu", tag=cms.InputTag("l1tSCPFL1PuppiEmuWide"), task=process.L1TPFWideJetsEmuTask)
 
     """ HISTO-SEEDED CONE 8 """
-    hsc8Sim = Jets(label="hsc8PuppiSim", tag=cms.InputTag("l1tHSCPFL1PuppiSimWide"), task=process.L1TPFHSCWideJetsSimTask)
     hsc8Emu = Jets(label="hsc8PuppiEmu", tag=cms.InputTag("l1tHSCPFL1PuppiEmuWide"), task=process.L1TPFHSCWideJetsEmuTask)
+    hsc8EmuTrimmed = Jets(label="hsc8PuppiEmuTrimmed", tag=cms.InputTag("l1tHSCPFL1PuppiWideEmulatorTrimmed"), task=process.L1TPFHSCWideJetsEmuTaskTrimmed)
 
 
-# HISTO
-addJets(*histo9x9Emu)
-addJets(*histo9x9trimmedEmu)
-# SC4
-addJets(*sc4Emu)
-# HSC4
-addJets(*hsc4Emu)                # HSC4 9X9 UNTRIMMED
-addJets(*hsc4EmuTrimmed)         # HSC4 9X9 TRIMMED
-addJets(*hsc4Emu7x7mask)         # HSC4 7X7 UNTRIMMED
-addJets(*hsc4Emu7x7maskTrimmed)  # HSC4 7X7 TRIMMED
-
-
+addJets(*sc8Emu)
+addJets(*hsc8Emu)
+addJets(*hsc8EmuTrimmed)
 
 
 # addJetConstituents(N=128)  # 128 by default
