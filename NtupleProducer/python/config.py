@@ -171,7 +171,6 @@ def saveCands(label, tag):
 ############################################################################################
 
 if wideJets == True:
-
     """ GENERATOR JETS """
     gen = Jets(label="AK8", tag=cms.InputTag("ak8GenJetsNoNu"), task=process.ak8GenJetsNoNuTask)
 
@@ -179,16 +178,20 @@ if wideJets == True:
     ak8 = Jets(label="ak8Puppi", tag=cms.InputTag("ak8PuppiJets"), task=process.ak8PuppiJetsTask)
 
     """ SEEDED CONE 8"""
-    # sc8Sim = Jets(label="sc8PuppiSim", tag=cms.InputTag("l1tSCPFL1PuppiSimWide"), task=process.L1TPFWideJetsSimTask)
-    # sc8Emu = Jets(label="sc8PuppiEmu", tag=cms.InputTag("l1tSCPFL1PuppiEmuWide"), task=process.L1TPFWideJetsEmuTask)
+    sc8Emu = Jets(label="sc8PuppiEmu", tag=cms.InputTag("l1tSC8PFL1PuppiEmulator"), task=process.L1TPFJetsEmulationTask)
 
-    # """ HISTO-SEEDED CONE 8 """
-    # hsc8Sim = Jets(label="hsc8PuppiSim", tag=cms.InputTag("l1tHSCPFL1PuppiSimWide"), task=process.L1TPFHSCWideJetsSimTask)
-    # hsc8Emu = Jets(label="hsc8PuppiEmu", tag=cms.InputTag("l1tHSCPFL1PuppiEmuWide"), task=process.L1TPFHSCWideJetsEmuTask)
+    """ HISTO-SEEDED CONE 8 """
+    hsc8Emu = Jets(label="hsc8PuppiEmu", tag=cms.InputTag("l1tHSC8PFL1PuppiEmu"), task=process.L1TPFHSC8JetsEmuTask)
+    hsc8EmuTrimmed = Jets(label="hsc8PuppiEmuTrimmed", tag=cms.InputTag("l1tHSC8PFL1PuppiEmuTrimmed"), task=process.L1TPFHSC8JetsEmuTaskTrimmed)
 
 
 addJets(*gen)
 addJets(*ak8)
+addJets(*sc8Emu)
+addJets(*hsc8Emu)
+addJets(*hsc8EmuTrimmed)
+
+addJetConstituents(N=128)  # 128 by default
 
 saveCands("PUPPI", "l1tLayer2Deregionizer:Puppi")
 # saveCands(label="l1tLayer1PUPPI", tag="l1tLayer1:Puppi")    # save sim PUPPI cands
