@@ -8,11 +8,11 @@ process.load('Configuration.StandardSequences.Services_cff')
 process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
 process.options   = cms.untracked.PSet( wantSummary = cms.untracked.bool(True), allowUnscheduled = cms.untracked.bool(False) )
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1))
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10))
 process.MessageLogger.cerr.FwkReport.reportEvery = 1
 
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('file:inputs125X.root'),
+    fileNames = cms.untracked.vstring('file:/eos/user/l/lroberts/P2_Jets/InputData/TTbar/inputs125X_3.root'),
     inputCommands = cms.untracked.vstring("keep *", 
             "drop l1tPFClusters_*_*_*",
             "drop l1tPFTracks_*_*_*",
@@ -154,7 +154,7 @@ monitorPerf("L1PF",    "l1tLayer1:PF")
 monitorPerf("L1Puppi", "l1tLayer1:Puppi")
 
 # to check available tags:
-#process.content = cms.EDAnalyzer("EventContentAnalyzer")
+process.content = cms.EDAnalyzer("EventContentAnalyzer")
 process.p = cms.Path(
         process.ntuple + #process.content +
         process.l1pfjetTable + 
@@ -164,11 +164,11 @@ process.p.associate(process.extraPFStuff)
 process.TFileService = cms.Service("TFileService", fileName = cms.string("perfTuple.root"))
 
 # for full debug:
-#process.out = cms.OutputModule("PoolOutputModule",
-#                               fileName = cms.untracked.string("debugPF.root"),
-#                               SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring("p"))
-#                           )
-#process.end = cms.EndPath(process.out)
+process.out = cms.OutputModule("PoolOutputModule",
+                              fileName = cms.untracked.string("debugPF.root"),
+                              SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring("p"))
+                          )
+process.end = cms.EndPath(process.out)
 
 process.outnano = cms.OutputModule("NanoAODOutputModule",
     fileName = cms.untracked.string("perfNano.root"),
