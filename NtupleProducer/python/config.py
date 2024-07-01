@@ -9,9 +9,9 @@ import sys
 from collections import namedtuple
 Jets = namedtuple("Jets", "label tag task")
 
-inputFile = str(sys.argv[-1])    # root://eoscms.cern.ch//eos/cms//store/cmst3/group/l1tr/gpetrucc/12_5_X/NewInputs125X/150223/VH_PtHat125_PU200/inputs125X_VH_PtHat125_PU200_job6.root
+inputFile = str(sys.argv[-1])    # root://eoscms.cern.ch//eos/user/l/lroberts/P2_Jets/InputData/CMSSW14/TTbar/inputs131X_9.root
 wideJets = True
-nEvents = 10
+nEvents = 50
 print(f"\nRunning over file: {inputFile}\nWide jets: {wideJets}\nNumber of events: {nEvents}\n")
 
 # Handle wide and regular jets
@@ -30,7 +30,7 @@ process.load('Configuration.StandardSequences.Services_cff')
 process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
 process.options   = cms.untracked.PSet( wantSummary = cms.untracked.bool(True), allowUnscheduled = cms.untracked.bool(False) )
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10))
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(nEvents))
 process.MessageLogger.cerr.FwkReport.reportEvery = 1
 
 process.source = cms.Source("PoolSource",
@@ -123,7 +123,6 @@ process.ntuple = cms.EDAnalyzer("ResponseNTuplizer",
 )
 process.extraPFStuff.add(process.l1tPFTracksFromL1Tracks)
 
-""" Add the candidate table to the process to store candidates """
 process.l1pfcandTable = cms.EDProducer("L1PFCandTableProducer",
     commonSel = cms.string("pt > 0.0 && abs(eta) < 10.0"),
     cands = cms.PSet(
@@ -131,9 +130,94 @@ process.l1pfcandTable = cms.EDProducer("L1PFCandTableProducer",
     moreVariables = cms.PSet(
         # puppiWeight = cms.string("puppiWeight"),   # commented out as not a property of gen jets so raises error
         pdgId = cms.string("pdgId"),
-        charge = cms.string("charge")
+        charge = cms.string("charge"),
     ),
 )
+
+""" Add the candidate table to the process to store candidates """
+process.l1pfgenTable = cms.EDProducer("L1PFCandTableProducer",
+    commonSel = cms.string("pt > 0.0 && abs(eta) < 10.0"),
+    cands = cms.PSet(
+        Gen = cms.InputTag("genParticles"),
+    ),
+    moreVariables = cms.PSet(
+        # puppiWeight = cms.string("puppiWeight"),   # commented out as not a property of gen jets so raises error
+        pdgId = cms.string("pdgId"),
+        charge = cms.string("charge"),
+        statusFlags = cms.string("statusFlags"),
+    ),
+)
+
+# process.load("PhysicsTools.NanoAOD.genparticles_cff")
+from PhysicsTools.NanoAOD.simpleCandidateFlatTableProducer_cfi import simpleCandidateFlatTableProducer
+process.l1pfgenTable = simpleCandidateFlatTableProducer.clone(
+    src = cms.InputTag("genParticles"),
+    name = cms.string("GenParticles"),
+    doc = cms.string("gen particles"),
+    singleton = cms.bool(False), # the number of entries is variable
+    extension = cms.bool(False), # this is the main table
+    variables = cms.PSet(
+        pt  = Var("pt", float, precision=8),
+        phi = Var("phi", float, precision=8),
+        eta = Var("eta", float, precision=8),
+        mass = Var("mass", float, precision=8),
+        pdgId = Var("pdgId", int, doc="PDG code of the gen particle"),
+        genPartIdxMother = Var("?numberOfMothers>0?motherRef(0).key():-1", "int16", doc="index of the mother particle"),
+        vz = Var("vz", float, precision=8),
+        charge = Var("charge", int, doc="charge id"),
+        status = Var("status", int, doc="Particle status. 1=stable, 2=decayed, 3=docayed after longlived particle, 21=unstable, 22=from a longlived particle, 23=unstable and from a longlived particle"),
+        statusFlags = (Var(
+            "statusFlags().isLastCopyBeforeFSR()                  * 16384 +"
+            "statusFlags().isLastCopy()                           * 8192  +"
+            "statusFlags().isFirstCopy()                          * 4096  +"
+            "statusFlags().fromHardProcessBeforeFSR()             * 2048  +"
+            "statusFlags().isDirectHardProcessTauDecayProduct()   * 1024  +"
+            "statusFlags().isHardProcessTauDecayProduct()         * 512   +"
+            "statusFlags().fromHardProcess()                      * 256   +"
+            "statusFlags().isHardProcess()                        * 128   +"
+            "statusFlags().isDirectHadronDecayProduct()           * 64    +"
+            "statusFlags().isDirectPromptTauDecayProduct()        * 32    +"
+            "statusFlags().isDirectTauDecayProduct()              * 16    +"
+            "statusFlags().isPromptTauDecayProduct()              * 8     +"
+            "statusFlags().isTauDecayProduct()                    * 4     +"
+            "statusFlags().isDecayedLeptonHadron()                * 2     +"
+            "statusFlags().isPrompt()                             * 1      ",
+            "uint16", doc=("gen status flags stored bitwise, bits are: "
+                "0 : isPrompt, "
+                "1 : isDecayedLeptonHadron, "
+                "2 : isTauDecayProduct, "
+                "3 : isPromptTauDecayProduct, "
+                "4 : isDirectTauDecayProduct, "
+                "5 : isDirectPromptTauDecayProduct, "
+                "6 : isDirectHadronDecayProduct, "
+                "7 : isHardProcess, "
+                "8 : fromHardProcess, "
+                "9 : isHardProcessTauDecayProduct, "
+                "10 : isDirectHardProcessTauDecayProduct, "
+                "11 : fromHardProcessBeforeFSR, "
+                "12 : isFirstCopy, "
+                "13 : isLastCopy, "
+                "14 : isLastCopyBeforeFSR, ")
+            )),
+    )
+)
+# genLepTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+#     src = cms.InputTag("genParticles"),
+#     doc = cms.string("gen particles"),
+#     singleton = cms.bool(False), # the number of entries is variable
+#     extension = cms.bool(False), # this is the main table
+#     variables = cms.PSet(
+#         pt  = Var("pt",  float,precision=8),
+#         phi = Var("phi", float,precision=8),
+#         eta  = Var("eta", float,precision=8),
+#         mass = Var("mass", float,precision=8),
+#         pdgId = Var("pdgId", int, doc="PDG code of the gen particle"),
+#         genPartIdxMother = Var("genPartIdxMother", int, doc="index of the mother particle"),
+#         vz   = Var("vz",  float,precision=8),
+#         charge  = Var("charge", int, doc="charge id"),
+#         prompt  = Var("2*statusFlags().isPrompt() + statusFlags().isDirectPromptTauDecayProduct()", int, doc="Particle status."),
+#     )
+# )
 
 process.l1pfjetTable = cms.EDProducer("L1PFJetTableProducer",
     gen = cms.InputTag(genJets),
@@ -148,6 +232,7 @@ process.l1pfjetTable = cms.EDProducer("L1PFJetTableProducer",
         nDau = cms.string("numberOfDaughters()"),
     ),
 )
+
 
 """" ADD JETS TO THE JET TABLE """
 def addJets(label, tag, task):
@@ -177,6 +262,10 @@ if wideJets == True:
     """ AK8"""
     ak8 = Jets(label="ak8Puppi", tag=cms.InputTag("ak8PuppiJets"), task=process.ak8PuppiJetsTask)
 
+    """ WIDE HISTOJETS (ALL TRIMMED) """
+    histo18x18 = Jets(label="wideHistoPuppiEmu", tag=cms.InputTag("l1tPhase1WideJetProducer18x18", "Uncalibratedl1tPhase1WideJet18x18FromPfCandidates"), task=process.L1TPFWideJetsPhase1Task_18x18)
+    histoDoubleBinSize = Jets(label="wideHistoPuppiEmuDoubleBinSize", tag=cms.InputTag("l1tPhase1WideJetProducer9x9", "Uncalibratedl1tPhase1WideJet9x9FromPfCandidates"), task=process.L1TPFWideJetsPhase1Task_9x9)
+
     """ SEEDED CONE 8"""
     sc8Emu = Jets(label="sc8PuppiEmu", tag=cms.InputTag("l1tSC8PFL1PuppiEmulator"), task=process.L1TPFJetsEmulationTask)
 
@@ -184,25 +273,37 @@ if wideJets == True:
     hsc8Emu = Jets(label="hsc8PuppiEmu", tag=cms.InputTag("l1tHSC8PFL1PuppiEmu"), task=process.L1TPFHSC8JetsEmuTask)
     hsc8EmuTrimmed = Jets(label="hsc8PuppiEmuTrimmed", tag=cms.InputTag("l1tHSC8PFL1PuppiEmuTrimmed"), task=process.L1TPFHSC8JetsEmuTaskTrimmed)
 
+    """ HISTO-SEEDED CONE 8 DOUBLE BIN SIZE """
+    # Double bin size, trimmed, 9x9 mask, 1 GeV seed threshold, 0.8 cone size, deregionizer cands
+    hsc8EmuDoubleBinSize = Jets(label="hsc8PuppiEmuDoubleBinSize", tag=cms.InputTag("l1tHSC8PFL1PuppiEmuDoubleBinSize"), task=process.L1TPFHSC8JetsEmuTaskDoubleBinSize)
 
-addJets(*gen)
-addJets(*ak8)
-addJets(*sc8Emu)
-addJets(*hsc8Emu)
-addJets(*hsc8EmuTrimmed)
 
-addJetConstituents(N=128)  # 128 by default
+addJets(*gen)                     # AK8 jets running on gen particles
+addJets(*ak8)                     # AK8 jets running on PUPPI cands
+
+addJets(*histo18x18)              # Wide histojets running on PUPPI cands
+addJets(*histoDoubleBinSize)      # Double binned wide histojets running on PUPPI cands
+
+addJets(*sc8Emu)                  # SC8 jets running on PUPPI cands
+
+addJets(*hsc8Emu)                 # HSC8 jets running on PUPPI cands
+addJets(*hsc8EmuTrimmed)          # Trimmed HSC8 jets running on PUPPI cands
+addJets(*hsc8EmuDoubleBinSize)    # Double binned trimmed HSC8 jets running on PUPPI cands
+
+addJetConstituents(N=1)  # 128 by default
 
 saveCands("PUPPI", "l1tLayer2Deregionizer:Puppi")
 # saveCands(label="l1tLayer1PUPPI", tag="l1tLayer1:Puppi")    # save sim PUPPI cands
-# saveCands(label="GenParticles", tag = "genParticles")    # Include genParticles by default
+#saveCands(label="GenParticles", tag = "genParticles")    # Include genParticles by default
 
 
 #############################################################################################
+
 process.p = cms.Path(
         process.ntuple + #process.content +
-        process.l1pfjetTable+
-        process.l1pfcandTable
+        process.l1pfjetTable +
+        process.l1pfcandTable +
+        process.l1pfgenTable
         )
 process.p.associate(process.extraPFStuff)
 process.TFileService = cms.Service("TFileService", fileName = cms.string("perfTuple.root"))
