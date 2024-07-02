@@ -173,6 +173,14 @@ def makeEffHist(name, refArr, corrArr, corrThr, xmax, logxbins=None):
 
 from FastPUPPI.NtupleProducer.scripts.respPlots import whats as WHATS
 whats = WHATS + [
+    ('doubBinSize',[
+        ("AK8",     "ak8Puppi",           ROOT.kGreen+1, 34, 1.2),
+        ("SC8",            "sc8PuppiEmu",       ROOT.kBlue+1, 21, 1.5),
+        ("HSC8 9x9T",       "hsc8PuppiEmuDoubleBinSize",        ROOT.kViolet+2, 20, 1.5),
+        ("HSC8 17x17T",    "hsc8PuppiEmuTrimmed",          ROOT.kOrange+7, 24, 1.5),
+        # ("Wide Histo 9x9T", "wideHistoPuppiEmuDoubleBinSize", ROOT.kAzure+10, 21, 1.5),
+        # ("Wide Histo 17x17T", "wideHistoPuppiEmu", ROOT.kRed+1, 24, 1.5),
+    ]),
     ('oldcomp',[
         ("Calo",      "L1OldCalo",        ROOT.kViolet+2, 20, 1.5),
         ("TK 5s",     "L1TKV5",           ROOT.kRed+1, 24, 1.5),

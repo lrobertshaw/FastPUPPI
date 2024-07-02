@@ -11,7 +11,7 @@ Jets = namedtuple("Jets", "label tag task")
 
 inputFile = str(sys.argv[-1])    # root://eoscms.cern.ch//eos/user/l/lroberts/P2_Jets/InputData/CMSSW14/TTbar/inputs131X_9.root
 wideJets = True
-nEvents = 50
+nEvents = -1
 print(f"\nRunning over file: {inputFile}\nWide jets: {wideJets}\nNumber of events: {nEvents}\n")
 
 # Handle wide and regular jets
@@ -135,18 +135,18 @@ process.l1pfcandTable = cms.EDProducer("L1PFCandTableProducer",
 )
 
 """ Add the candidate table to the process to store candidates """
-process.l1pfgenTable = cms.EDProducer("L1PFCandTableProducer",
-    commonSel = cms.string("pt > 0.0 && abs(eta) < 10.0"),
-    cands = cms.PSet(
-        Gen = cms.InputTag("genParticles"),
-    ),
-    moreVariables = cms.PSet(
-        # puppiWeight = cms.string("puppiWeight"),   # commented out as not a property of gen jets so raises error
-        pdgId = cms.string("pdgId"),
-        charge = cms.string("charge"),
-        statusFlags = cms.string("statusFlags"),
-    ),
-)
+# process.l1pfgenTable = cms.EDProducer("L1PFCandTableProducer",
+#     commonSel = cms.string("pt > 0.0 && abs(eta) < 10.0"),
+#     cands = cms.PSet(
+#         Gen = cms.InputTag("genParticles"),
+#     ),
+#     moreVariables = cms.PSet(
+#         # puppiWeight = cms.string("puppiWeight"),   # commented out as not a property of gen jets so raises error
+#         pdgId = cms.string("pdgId"),
+#         charge = cms.string("charge"),
+#         statusFlags = cms.string("statusFlags"),
+#     ),
+# )
 
 # process.load("PhysicsTools.NanoAOD.genparticles_cff")
 from PhysicsTools.NanoAOD.simpleCandidateFlatTableProducer_cfi import simpleCandidateFlatTableProducer
@@ -201,28 +201,11 @@ process.l1pfgenTable = simpleCandidateFlatTableProducer.clone(
             )),
     )
 )
-# genLepTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
-#     src = cms.InputTag("genParticles"),
-#     doc = cms.string("gen particles"),
-#     singleton = cms.bool(False), # the number of entries is variable
-#     extension = cms.bool(False), # this is the main table
-#     variables = cms.PSet(
-#         pt  = Var("pt",  float,precision=8),
-#         phi = Var("phi", float,precision=8),
-#         eta  = Var("eta", float,precision=8),
-#         mass = Var("mass", float,precision=8),
-#         pdgId = Var("pdgId", int, doc="PDG code of the gen particle"),
-#         genPartIdxMother = Var("genPartIdxMother", int, doc="index of the mother particle"),
-#         vz   = Var("vz",  float,precision=8),
-#         charge  = Var("charge", int, doc="charge id"),
-#         prompt  = Var("2*statusFlags().isPrompt() + statusFlags().isDirectPromptTauDecayProduct()", int, doc="Particle status."),
-#     )
-# )
 
 process.l1pfjetTable = cms.EDProducer("L1PFJetTableProducer",
     gen = cms.InputTag(genJets),
     commonSel = cms.string("pt > 5 && abs(eta) < 5.0"),
-    drMax = cms.double(0.2),
+    drMax = cms.double(0.4 if wideJets == True else 0.2),
     minRecoPtOverGenPt = cms.double(0.1),
     jets = cms.PSet(
         Gen = cms.InputTag(genJets),
@@ -253,7 +236,10 @@ def addJetConstituents(N=128):
 """ SAVE CANDIDATES """
 def saveCands(label, tag):
     setattr (process.l1pfcandTable.cands, label, cms.InputTag(tag))
+
 ############################################################################################
+if wideJets == False:
+    pass
 
 if wideJets == True:
     """ GENERATOR JETS """
@@ -267,7 +253,8 @@ if wideJets == True:
     histoDoubleBinSize = Jets(label="wideHistoPuppiEmuDoubleBinSize", tag=cms.InputTag("l1tPhase1WideJetProducer9x9", "Uncalibratedl1tPhase1WideJet9x9FromPfCandidates"), task=process.L1TPFWideJetsPhase1Task_9x9)
 
     """ SEEDED CONE 8"""
-    sc8Emu = Jets(label="sc8PuppiEmu", tag=cms.InputTag("l1tSC8PFL1PuppiEmulator"), task=process.L1TPFJetsEmulationTask)
+    sc8Sim = Jets(label="sc8PuppiSim", tag=cms.InputTag("l1tSC8PFL1Puppi"), task=process.L1TPFJetsEmulationTask)    # Should have jet mass
+    sc8Emu = Jets(label="sc8PuppiEmu", tag=cms.InputTag("l1tSC8PFL1PuppiEmulator"), task=process.L1TPFJetsEmulationTask)    # wont have jet mass
 
     """ HISTO-SEEDED CONE 8 """
     hsc8Emu = Jets(label="hsc8PuppiEmu", tag=cms.InputTag("l1tHSC8PFL1PuppiEmu"), task=process.L1TPFHSC8JetsEmuTask)
@@ -275,7 +262,7 @@ if wideJets == True:
 
     """ HISTO-SEEDED CONE 8 DOUBLE BIN SIZE """
     # Double bin size, trimmed, 9x9 mask, 1 GeV seed threshold, 0.8 cone size, deregionizer cands
-    hsc8EmuDoubleBinSize = Jets(label="hsc8PuppiEmuDoubleBinSize", tag=cms.InputTag("l1tHSC8PFL1PuppiEmuDoubleBinSize"), task=process.L1TPFHSC8JetsEmuTaskDoubleBinSize)
+    hsc8EmuDoubleBinSize = Jets(label="hsc8PuppiEmuDoubleBinSize", tag=cms.InputTag("l1tHSC8PFL1PuppiEmuDoubleBinSize"), task=process.L1TPFHSC8JetsEmuTaskDoubleBinSize)    # trimmed
 
 
 addJets(*gen)                     # AK8 jets running on gen particles
@@ -284,13 +271,14 @@ addJets(*ak8)                     # AK8 jets running on PUPPI cands
 addJets(*histo18x18)              # Wide histojets running on PUPPI cands
 addJets(*histoDoubleBinSize)      # Double binned wide histojets running on PUPPI cands
 
-addJets(*sc8Emu)                  # SC8 jets running on PUPPI cands
+addJets(*sc8Sim)                  # SC8 jets running on PUPPI cands but with SW implementation
+addJets(*sc8Emu)                  # SC8 jets running on PUPPI cands but with HW implementation
 
 addJets(*hsc8Emu)                 # HSC8 jets running on PUPPI cands
 addJets(*hsc8EmuTrimmed)          # Trimmed HSC8 jets running on PUPPI cands
 addJets(*hsc8EmuDoubleBinSize)    # Double binned trimmed HSC8 jets running on PUPPI cands
 
-addJetConstituents(N=1)  # 128 by default
+addJetConstituents(N=1)  # 128 by default as max regioniser output
 
 saveCands("PUPPI", "l1tLayer2Deregionizer:Puppi")
 # saveCands(label="l1tLayer1PUPPI", tag="l1tLayer1:Puppi")    # save sim PUPPI cands
