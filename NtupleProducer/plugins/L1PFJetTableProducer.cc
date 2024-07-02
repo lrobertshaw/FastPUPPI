@@ -87,7 +87,7 @@ L1PFJetTableProducer::produce(edm::StreamID id, edm::Event& iEvent, const edm::E
     edm::Handle<reco::CandidateView> src;
     std::vector<const reco::Candidate *> selected, matched;
     std::vector<float> vals_pt, vals_eta, vals_phi, vals_mass;
-    for (auto & jets : jets_) {
+    for (auto & jets : jets_) {    // iterate over l1 jets in event
         // get and select
         iEvent.getByToken(jets.src, src);
         for (const auto & j : *src) {
@@ -96,23 +96,23 @@ L1PFJetTableProducer::produce(edm::StreamID id, edm::Event& iEvent, const edm::E
             }
         }
         // mc-match
-        matched.resize(selected.size());
-        std::fill(matched.begin(), matched.end(), nullptr);
-        std::vector<std::pair<float,std::pair<const reco::Candidate*, unsigned int>>> matches;
-        for (const auto & genj : *gens) {
-            for (unsigned int ireco = 0, nreco = selected.size(); ireco < nreco; ++ireco) {
-                const reco::Candidate & reco = *(selected[ireco]);
-                if (reco.pt() <= minPtRatio_*genj.pt()) continue;
-                float dr2 = deltaR2(reco, genj);
-                if (dr2 < dr2Max_) matches.emplace_back(dr2, std::make_pair(&genj, ireco));
+        matched.resize(selected.size());    // make matched array same size as selected
+        std::fill(matched.begin(), matched.end(), nullptr);    // fill entire vector with null ptrs
+        std::vector<std::pair<float, std::pair<const reco::Candidate*, unsigned int>>> matches;    // make array of matches which are (dr, (genJ, candIdx))
+        for (const auto & genj : *gens) {    // iterate over gen jets in event
+            for (unsigned int ireco = 0, nreco = selected.size(); ireco < nreco; ++ireco) {    // iterate over num of reco jets by index
+                const reco::Candidate & reco = *(selected[ireco]);    // get reco jet
+                if (reco.pt() <= minPtRatio_*genj.pt()) continue;    // skip reco jet if it's pt is less than minPtRatio * gen pt
+                float dr2 = deltaR2(reco, genj);    // find distance between reco and gen jet
+                if (dr2 < dr2Max_) matches.emplace_back(dr2, std::make_pair(&genj, ireco));    // if distance is within dr2Max, add match to matches vector
             }
         }
-        std::sort(matches.begin(), matches.end());
-        for (unsigned int im = 0, nm = matches.size(); im < nm; ++im) {
-            const auto & match = matches[im];
-            if (match.second.first == nullptr) continue;
+        std::sort(matches.begin(), matches.end());    // sorts matches by increasing dr by default
+        for (unsigned int im = 0, nm = matches.size(); im < nm; ++im) {    // iterates over the matches
+            const auto & match = matches[im];    // gets current match
+            if (match.second.first == nullptr) continue;    // checks if the gen jet pointer is null
             // set the match
-            matched[match.second.second] = match.second.first;
+            matched[match.second.second] = match.second.first;    // sets candIdx of matched as just the gen ptr
             // remove any other candidate pair that overlaps with this one
             for (unsigned int im2 = im+1; im2 < nm; ++im2) {
                 auto & match2 = matches[im2];
@@ -150,13 +150,16 @@ L1PFJetTableProducer::produce(edm::StreamID id, edm::Event& iEvent, const edm::E
                 if (matched[i] != nullptr) {
                     vals_pt[i] = matched[i]->pt();
                     vals_eta[i] = deltaR(*selected[i], *matched[i]);;
+                    vals_mass[i] = matched[i]->mass();
                 } else {
                     vals_pt[i] = 0;
                     vals_eta[i] = 99.9;
+                    vals_mass[i] = 0;
                 }
             }
             out->addColumn<float>("genpt", vals_pt, "pt of matched gen jet");
             out->addColumn<float>("gendr", vals_eta, "dr of matched gen jet");
+            out->addColumn<float>("genmass", vals_mass, "mass of matched gen jet")
         }
 
         // fill extra vars
