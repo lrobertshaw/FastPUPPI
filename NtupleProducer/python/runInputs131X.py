@@ -1,6 +1,9 @@
 import FWCore.ParameterSet.Config as cms
 from Configuration.StandardSequences.Eras import eras
 
+inputFile = str(sys.argv[-1])
+nEvents = -1
+
 process = cms.Process("IN", eras.Phase2C17I13M9)
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('Configuration.Geometry.GeometryExtended2026D95Reco_cff')
@@ -23,10 +26,7 @@ process.load("RecoVertex.BeamSpotProducer.BeamSpot_cfi")
 process.load('L1Trigger.L1THGCal.hgcalTriggerPrimitives_cff')
 
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring(
-        # 'file:/data/cerminar/Phase2Spring23DIGIRECOMiniAOD/DoubleElectron_FlatPt-1To100-gun/GEN-SIM-DIGI-RAW-MINIAOD/PU200_Trk1GeV_131X_mcRun4_realistic_v5-v1/c699a773-9875-40c9-83b7-5a3c27f90bfd.root',
-        '/store/mc/Phase2Spring23DIGIRECOMiniAOD/DYToLL_M-10To50_TuneCP5_14TeV-pythia8/GEN-SIM-DIGI-RAW-MINIAOD/PU200_Trk1GeV_131X_mcRun4_realistic_v5-v1/30000/0289a719-64c3-4b16-871f-da7db9a8ac88.root',        '/store/mc/Phase2Spring23DIGIRECOMiniAOD/MinBias_TuneCP5_14TeV-pythia8/GEN-SIM-DIGI-RAW-MINIAOD/PU200_Trk1GeV_131X_mcRun4_realistic_v5-v1/30002/3b44d52d-1807-4a4f-9b9b-19466303a741.root',
-),
+    fileNames = cms.untracked.vstring('file:{}'.format(inputFile),),
 
     inputCommands = cms.untracked.vstring(
         'keep *',
@@ -37,7 +37,7 @@ process.source = cms.Source("PoolSource",
         'drop triggerTriggerFilterObjectWithRefs_*_*_HLT'
     ),
 )
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(200))
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(nEvents) )
 process.options = cms.untracked.PSet(
         wantSummary = cms.untracked.bool(True),
         #numberOfThreads = cms.untracked.uint32(4),
@@ -112,7 +112,7 @@ process.out = cms.OutputModule("PoolOutputModule",
             "keep *_simGtExtFakeStage2Digis_*_*",
             "keep *_simGtStage2Digis_*_*",
             "keep *_CalibratedDigis_*_*",
-            "keep *_dtTriggerPhase2PrimitiveDigis_*_*",
+            #"keep *_dtTriggerPhase2PrimitiveDigis_*_*",
             # --- HGCal TPs
             "keep l1tHGCalTriggerCellBXVector_l1tHGCalVFEProducer_*_*",
             #"keep l1tHGCalTriggerCellBXVector_l1tHGCalConcentratorProducer_*_*",
