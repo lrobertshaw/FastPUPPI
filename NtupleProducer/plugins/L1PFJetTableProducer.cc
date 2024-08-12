@@ -159,7 +159,7 @@ L1PFJetTableProducer::produce(edm::StreamID id, edm::Event& iEvent, const edm::E
             }
             out->addColumn<float>("genpt", vals_pt, "pt of matched gen jet");
             out->addColumn<float>("gendr", vals_eta, "dr of matched gen jet");
-            out->addColumn<float>("genmass", vals_mass, "mass of matched gen jet")
+            out->addColumn<float>("genmass", vals_mass, "mass of matched gen jet");
         }
 
         // fill extra vars

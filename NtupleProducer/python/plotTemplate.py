@@ -24,7 +24,7 @@ class plotTemplate:
         tex.SetTextSize(0.03)
         #tex.SetTextFont(42)
         #tex.DrawLatexNDC(0.17,0.95,"#bf{#scale[1.5]{CMS}} #it{Phase-2 Simulation}")
-        tex.DrawLatexNDC(self.canvas.GetLeftMargin(),0.95,"#scale[1.5]{CMS} Phase-2 Simulation")
+        tex.DrawLatexNDC(self.canvas.GetLeftMargin(),0.95,"#scale[1.5]{CMS} Private work (phase-2 simulation)")
         tex.SetTextSize(0.035)
         tex.SetTextAlign(31)
         tex.DrawLatexNDC(1.0-self.canvas.GetRightMargin(),0.95,"%s%s, %s PU" % (energy, ", 3000 fb^{-1}" if lumi else "", pu))

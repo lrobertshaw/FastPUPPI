@@ -17,7 +17,7 @@ print(f"\nRunning over file: {inputFile}\nWide jets: {wideJets}\nNumber of event
 # Handle wide and regular jets
 if wideJets == True:
     genJets = "ak8GenJetsNoNu"
-    ptCut = 30
+    ptCut = 0
 elif wideJets == False:
     genJets = "ak4GenJetsNoNu"
     ptCut = 15
@@ -107,7 +107,7 @@ if wideJets == True:
     # process.extraPFStuff.add(process.ak4GenJetsNoNuTask)
 
     # AK8 ON PUPPI CANDS
-    #from L1Trigger.Phase2L1ParticleFlow.l1tDeregionizerProducer_cfi import l1tDeregionizerProducer as l1tLayer2Deregionizer
+    from L1Trigger.Phase2L1ParticleFlow.l1tDeregionizerProducer_cfi import l1tDeregionizerProducer as l1tLayer2Deregionizer
     ak8PuppiJets = ak8GenJets.clone(src="l1tLayer2Deregionizer:Puppi")
     setattr(process, "ak8PuppiJets", ak8PuppiJets)
 
@@ -291,23 +291,23 @@ addJets(*gen)
 addJets(*genAK4)
 
 addJets(*sc4Sim)
-addJets("SC8Mass120Cut", sc8Sim.tag, sc8Sim.task, cms.string("mass > 120"))
-addJets("SC8Mass110Cut", sc8Sim.tag, sc8Sim.task, cms.string("mass > 110"))
-addJets("SC8Mass100Cut", sc8Sim.tag, sc8Sim.task, cms.string("mass > 100"))
-addJets("SC8Mass90Cut",  sc8Sim.tag, sc8Sim.task, cms.string("mass > 90"))
-addJets("SC8Mass80Cut",  sc8Sim.tag, sc8Sim.task, cms.string("mass > 80"))
-addJets("SC8Mass70Cut",  sc8Sim.tag, sc8Sim.task, cms.string("mass > 70"))
-addJets("SC8Mass60Cut",  sc8Sim.tag, sc8Sim.task, cms.string("mass > 60"))
-addJets("SC8Mass50Cut",  sc8Sim.tag, sc8Sim.task, cms.string("mass > 50"))
-addJets("SC8Mass40Cut",  sc8Sim.tag, sc8Sim.task, cms.string("mass > 40"))
-addJets("SC8Mass30Cut",  sc8Sim.tag, sc8Sim.task, cms.string("mass > 30"))
-addJets("SC8Mass20Cut",  sc8Sim.tag, sc8Sim.task, cms.string("mass > 20"))
-addJets("SC8Mass10Cut",  sc8Sim.tag, sc8Sim.task, cms.string("mass > 10"))
-addJets("SC8MassNoCut",  sc8Sim.tag, sc8Sim.task                         )
+# addJets("SC8Mass120Cut", sc8Sim.tag, sc8Sim.task, cms.string("mass > 120"))
+# addJets("SC8Mass110Cut", sc8Sim.tag, sc8Sim.task, cms.string("mass > 110"))
+# addJets("SC8Mass100Cut", sc8Sim.tag, sc8Sim.task, cms.string("mass > 100"))
+# addJets("SC8Mass90Cut",  sc8Sim.tag, sc8Sim.task, cms.string("mass > 90"))
+# addJets("SC8Mass80Cut",  sc8Sim.tag, sc8Sim.task, cms.string("mass > 80"))
+# addJets("SC8Mass70Cut",  sc8Sim.tag, sc8Sim.task, cms.string("mass > 70"))
+# addJets("SC8Mass60Cut",  sc8Sim.tag, sc8Sim.task, cms.string("mass > 60"))
+# addJets("SC8Mass50Cut",  sc8Sim.tag, sc8Sim.task, cms.string("mass > 50"))
+# addJets("SC8Mass40Cut",  sc8Sim.tag, sc8Sim.task, cms.string("mass > 40"))
+# addJets("SC8Mass30Cut",  sc8Sim.tag, sc8Sim.task, cms.string("mass > 30"))
+# addJets("SC8Mass20Cut",  sc8Sim.tag, sc8Sim.task, cms.string("mass > 20"))
+# addJets("SC8Mass10Cut",  sc8Sim.tag, sc8Sim.task, cms.string("mass > 10"))
+# addJets("SC8MassNoCut",  sc8Sim.tag, sc8Sim.task                         )
 
-addJetConstituents(N=1)  # 128 by default as max regioniser output
+# addJetConstituents(N=1)  # 128 by default as max regioniser output
 saveCands("PUPPI", "l1tLayer2Deregionizer:Puppi")
-saveCands(label="GenParticles", tag = "genParticles")    # Include genParticles by default
+# saveCands(label="GenParticles", tag = "genParticles")    # Include genParticles by default
 #############################################################################################
 
 process.p = cms.Path(
