@@ -181,13 +181,19 @@ whats = WHATS + [
         ("SC8 L1M > 40", "SC8Mass40Cut", ROOT.kRed+1, 24, 0.5),
         ("SC8 L1M > 50", "SC8Mass50Cut", ROOT.kViolet+2, 24, 0.5),
     ]),
+    ('sc8etasel', [
+        ("SC8 eta < 3",    "sc8PuppiEmuEtaSel",           ROOT.kGreen+1, 34, 1.2),
+        ("SC8",            "sc8PuppiEmu",                 ROOT.kBlue+1, 21, 1.5),
+        ("HSC8 9x9T",      "hsc8PuppiEmuDoubleBinSize",   ROOT.kViolet+2, 20, 1.5),
+        ("HSC8 17x17T",    "hsc8PuppiEmuTrimmed",         ROOT.kOrange+7, 24, 1.5),
+        # ("Wide Histo 9x9T", "wideHistoPuppiEmuDoubleBinSize", ROOT.kAzure+10, 21, 1.5),
+        # ("Wide Histo 17x17T", "wideHistoPuppiEmu", ROOT.kRed+1, 24, 1.5),
+    ]),
     ('doubBinSize',[
         ("AK8",     "ak8Puppi",           ROOT.kGreen+1, 34, 1.2),
         ("SC8",            "sc8PuppiEmu",       ROOT.kBlue+1, 21, 1.5),
         ("HSC8 9x9T",       "hsc8PuppiEmuDoubleBinSize",        ROOT.kViolet+2, 20, 1.5),
         ("HSC8 17x17T",    "hsc8PuppiEmuTrimmed",          ROOT.kOrange+7, 24, 1.5),
-        # ("Wide Histo 9x9T", "wideHistoPuppiEmuDoubleBinSize", ROOT.kAzure+10, 21, 1.5),
-        # ("Wide Histo 17x17T", "wideHistoPuppiEmu", ROOT.kRed+1, 24, 1.5),
     ]),
     ('oldcomp',[
         ("Calo",      "L1OldCalo",        ROOT.kViolet+2, 20, 1.5),

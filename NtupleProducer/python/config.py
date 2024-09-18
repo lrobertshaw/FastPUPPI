@@ -11,7 +11,7 @@ Jets = namedtuple("Jets", "label tag task")
 
 inputFile = str(sys.argv[-1])    # root://eoscms.cern.ch//eos/user/l/lroberts/P2_Jets/InputData/CMSSW14/TTbar/inputs131X_9.root
 wideJets = True
-nEvents = -1
+nEvents = 10
 print(f"\nRunning over file: {inputFile}\nWide jets: {wideJets}\nNumber of events: {nEvents}\n")
 
 # Handle wide and regular jets
@@ -20,7 +20,7 @@ if wideJets == True:
     ptCut = 0
 elif wideJets == False:
     genJets = "ak4GenJetsNoNu"
-    ptCut = 15
+    ptCut = 0
 else:
     raise Exception("wideJets must be a boolean")
 
@@ -97,6 +97,23 @@ if wideJets == True:
     setattr(process, 'ak8GenJetsNoNuTask', ak8GenJetsNoNuTask)
     process.extraPFStuff.add(process.ak8GenJetsNoNuTask)
 
+    ak8GenConstits = cms.EDProducer("GenJetConstituentSelector",
+                                            src = cms.InputTag("ak8GenJetsNoNu"),
+                                            cut = cms.string("pt > 5.0")
+                                            )
+    setattr(process, 'ak8GenConstits', ak8GenConstits)
+    process.extraPFStuff.add(process.ak8GenConstits)
+
+    ak8GenConstitsTask = cms.Task(process.ak8GenConstits)
+    setattr(process, 'ak8GenConstitsTask', ak8GenConstitsTask)    
+    process.extraPFStuff.add(process.ak8GenConstitsTask)
+
+
+
+
+
+
+
     # AK4 jets
     from RecoJets.JetProducers.ak4GenJets_cfi import ak4GenJets
     ak4GenJetsNoNu = ak4GenJets.clone( src = "genParticlesForJetsNoNu" )
@@ -151,19 +168,6 @@ process.l1pfcandTable = cms.EDProducer("L1PFCandTableProducer",
 )
 
 """ Add the candidate table to the process to store candidates """
-# process.l1pfgenTable = cms.EDProducer("L1PFCandTableProducer",
-#     commonSel = cms.string("pt > 0.0 && abs(eta) < 10.0"),
-#     cands = cms.PSet(
-#         Gen = cms.InputTag("genParticles"),
-#     ),
-#     moreVariables = cms.PSet(
-#         # puppiWeight = cms.string("puppiWeight"),   # commented out as not a property of gen jets so raises error
-#         pdgId = cms.string("pdgId"),
-#         charge = cms.string("charge"),
-#         statusFlags = cms.string("statusFlags"),
-#     ),
-# )
-
 # process.load("PhysicsTools.NanoAOD.genparticles_cff")
 from PhysicsTools.NanoAOD.simpleCandidateFlatTableProducer_cfi import simpleCandidateFlatTableProducer
 process.l1pfgenTable = simpleCandidateFlatTableProducer.clone(
@@ -229,9 +233,8 @@ process.l1pfjetTable = cms.EDProducer("L1PFJetTableProducer",
     ),
     moreVariables = cms.PSet(
         nDau = cms.string("numberOfDaughters()"),
-    ), 
+    ),
 )
-
 
 """" ADD JETS TO THE JET TABLE """
 def addJets(label, tag, task, *sels):
@@ -262,7 +265,7 @@ if wideJets == False:
 if wideJets == True:
     """ GENERATOR JETS """
     gen = Jets(label="ak8Gen", tag=cms.InputTag("ak8GenJetsNoNu"), task=process.ak8GenJetsNoNuTask)
-    genAK4 = Jets(label="ak4Gen", tag=cms.InputTag("ak4GenJetsNoNu"), task=process.ak4GenJetsNoNuTask)
+    # genAK4 = Jets(label="ak4Gen", tag=cms.InputTag("ak4GenJetsNoNu"), task=process.ak4GenJetsNoNuTask)
 
     """ Anti-kT"""
     ak8 = Jets(label="ak8Puppi", tag=cms.InputTag("ak8PuppiJets"), task=process.ak8PuppiJetsTask)
@@ -280,17 +283,24 @@ if wideJets == True:
     sc4Emu = Jets(label="sc4PuppiEmu", tag=cms.InputTag("l1tSCPFL1PuppiEmulator"), task=process.L1TPFJetsEmulationTask)
 
     """ HISTO-SEEDED CONE 8 """
-    hsc8Emu = Jets(label="hsc8PuppiEmu", tag=cms.InputTag("l1tHSC8PFL1PuppiEmu"), task=process.L1TPFHSC8JetsEmuTask)
+    # hsc8Emu = Jets(label="hsc8PuppiEmu", tag=cms.InputTag("l1tHSC8PFL1PuppiEmu"), task=process.L1TPFHSC8JetsEmuTask)
     hsc8EmuTrimmed = Jets(label="hsc8PuppiEmuTrimmed", tag=cms.InputTag("l1tHSC8PFL1PuppiEmuTrimmed"), task=process.L1TPFHSC8JetsEmuTaskTrimmed)
+    hsc8SimTrimmed = Jets(label="hsc8PuppiSimTrimmed", tag=cms.InputTag("l1tHSC8PFL1PuppiSimTrimmed"), task=process.L1TPFHSC8JetsSimTaskTrimmed)
 
     """ HISTO-SEEDED CONE 8 DOUBLE BIN SIZE """
     # Double bin size, trimmed, 9x9 mask, 1 GeV seed threshold, 0.8 cone size, deregionizer cands
-    hsc8EmuDoubleBinSize = Jets(label="hsc8PuppiEmuDoubleBinSize", tag=cms.InputTag("l1tHSC8PFL1PuppiEmuDoubleBinSize"), task=process.L1TPFHSC8JetsEmuTaskDoubleBinSize)    # trimmed
+    hsc8EmuDoubleBinSize    = Jets(label="hsc8PuppiEmuDoubleBinSize", tag=cms.InputTag("l1tHSC8PFL1PuppiEmuDoubleBinSize"), task=process.L1TPFHSC8JetsEmuTaskDoubleBinSize)   # trimmed
+    hsc8SimDoubleBinSize    = Jets(label="hsc8PuppiSimDoubleBinSize", tag=cms.InputTag("l1tHSC8PFL1PuppiSimDoubleBinSize"), task=process.L1TPFHSC8JetsSimTaskDoubleBinSize)   # trimmed
+    hsc8SimDoubleBinSize3x3 = Jets(label="hsc8Puppi3x3SimDoubleBinSize", tag=cms.InputTag("l1tHSC8PFL1Puppi3x3SimDoubleBinSize"), task=process.L1TPFHSC8Jets3x3SimTaskDoubleBinSize)   # trimmed
+    hsc8SimDoubleBinSize5x5 = Jets(label="hsc8Puppi5x5SimDoubleBinSize", tag=cms.InputTag("l1tHSC8PFL1Puppi5x5SimDoubleBinSize"), task=process.L1TPFHSC8Jets5x5SimTaskDoubleBinSize)   # trimmed
 
-addJets(*gen)
-addJets(*genAK4)
 
-addJets(*sc4Sim)
+addJets(*ak8)    # AK8 jets for baseline
+addJets(*sc8Sim)    # seeded cone jets
+# addJets(*sc8Emu)
+
+# addJets("sc8PuppiSimEtaSel", sc8Sim.tag, sc8Sim.task, cms.string("abs(eta) < 3"))
+# addJets(*sc4Sim)
 # addJets("SC8Mass120Cut", sc8Sim.tag, sc8Sim.task, cms.string("mass > 120"))
 # addJets("SC8Mass110Cut", sc8Sim.tag, sc8Sim.task, cms.string("mass > 110"))
 # addJets("SC8Mass100Cut", sc8Sim.tag, sc8Sim.task, cms.string("mass > 100"))
@@ -305,28 +315,37 @@ addJets(*sc4Sim)
 # addJets("SC8Mass10Cut",  sc8Sim.tag, sc8Sim.task, cms.string("mass > 10"))
 # addJets("SC8MassNoCut",  sc8Sim.tag, sc8Sim.task                         )
 
-# addJetConstituents(N=1)  # 128 by default as max regioniser output
-saveCands("PUPPI", "l1tLayer2Deregionizer:Puppi")
+# addJetConstituents(N=128)  # 128 by default as max regioniser output
+# saveCands("PUPPI", "l1tLayer2Deregionizer:Puppi")
 # saveCands(label="GenParticles", tag = "genParticles")    # Include genParticles by default
+
+# setattr(process.l1pfcandTable.cands, "GenJetConstits", cms.InputTag("ak8GenConstits", "constituents"))
 #############################################################################################
 
 process.p = cms.Path(
         process.ntuple + #process.content +
         process.l1pfjetTable +
         process.l1pfcandTable +
-        process.l1pfgenTable
+        process.l1pfgenTable +
+        process.ak8GenConstits
         )
 process.p.associate(process.extraPFStuff)
 process.TFileService = cms.Service("TFileService", fileName = cms.string("perfTuple.root"))
 
-process.outnano = cms.OutputModule("NanoAODOutputModule",
-    fileName = cms.untracked.string("perfNano.root"),
-    SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring('p')),
-    outputCommands = cms.untracked.vstring("drop *", "keep nanoaodFlatTable_*Table_*_*"),
-    compressionLevel = cms.untracked.int32(4),
-    compressionAlgorithm = cms.untracked.string("ZLIB"),
-)
-process.end = cms.EndPath(process.outnano)
+process.out = cms.OutputModule("PoolOutputModule",
+                              fileName = cms.untracked.string("debugPF.root"),
+                              SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring("p"))
+                          )
+process.end = cms.EndPath(process.out)
+
+# process.outnano = cms.OutputModule("NanoAODOutputModule",
+#     fileName = cms.untracked.string("perfNano.root"),
+#     SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring('p')),
+#     outputCommands = cms.untracked.vstring("drop *", "keep nanoaodFlatTable_*Table_*_*"),
+#     compressionLevel = cms.untracked.int32(4),
+#     compressionAlgorithm = cms.untracked.string("ZLIB"),
+# )
+# process.end = cms.EndPath(process.outnano)
 
 if False:
     """ NOTE: useExternalSeeds FLAG DOESN'T WORK WITH SIM JETS, HW FLAG MUST BE TRUE """
@@ -350,5 +369,10 @@ if False:
         saveCands("PUPPI", "l1tLayer2Deregionizer:Puppi")
         saveCands(label="GenParticles", tag = "genParticles")    # Include genParticles by default
 
-
+    def hscDoubleBinSize():
+        addJets(*ak8)    # AK8 jets for baseline
+        addJets(*sc8Sim)    # seeded cone jets
+        addJets(*hsc8SimDoubleBinSize)    # hsc jets with 9x9 mask, but double bin sizes
+        addJets(*hsc8SimDoubleBinSize3x3)
+        addJets(*hsc8SimDoubleBinSize5x5)
 
