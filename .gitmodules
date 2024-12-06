@@ -1,3 +1,6 @@
 [submodule "submission"]
 	path = submission
 	url = git@github.com:CMS-L1T-Jet-Tagging/submission.git
+[submodule "mrCrabs"]
+	path = mrCrabs
+	url = https://github.com/CMS-L1T-Jet-Tagging/mrCrabs.git
