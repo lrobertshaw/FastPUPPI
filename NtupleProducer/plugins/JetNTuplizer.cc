@@ -55,6 +55,7 @@
 #include "DataFormats/L1TCorrelator/interface/TkEm.h"
 #include "DataFormats/L1TCorrelator/interface/TkEmFwd.h"
 #include "DataFormats/L1Trigger/interface/EGamma.h"
+#include "DataFormats/Common/interface/ValueMap.h"
 
 #include "DataFormats/L1TMuonPhase2/interface/SAMuon.h"
 
@@ -64,7 +65,6 @@
 #include <TLorentzVector.h>
 #include "DataFormats/JetMatching/interface/JetFlavourInfoMatching.h"
 #include "DataFormats/L1TParticleFlow/interface/PFCandidate.h"
-#include "L1Trigger/Phase2L1ParticleFlow/interface/BJetId.h"
 #include "L1Trigger/Phase2L1ParticleFlow/interface/MultiJetId.h"
 #include "DataFormats/L1Trigger/interface/VertexWord.h"
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
@@ -167,7 +167,6 @@ class JetNTuplizer : public edm::one::EDAnalyzer<edm::one::SharedResources,edm::
         edm::EDGetTokenT<std::vector<l1t::SAMuon>> muons_;
         edm::EDGetTokenT<reco::JetFlavourInfoMatchingCollection> genJetsFlavour_;
         edm::EDGetTokenT<std::vector<l1t::VertexWord>> const fVtxEmu_;
-        edm::EDGetTokenT<edm::ValueMap<float>> const bjetids_;
         edm::EDGetTokenT<edm::ValueMap<std::vector<float>>> const multijetids_;
         // const edm::InputTag pileupInfoTag_;
         TTree *tree_;
@@ -250,8 +249,6 @@ class JetNTuplizer : public edm::one::EDAnalyzer<edm::one::SharedResources,edm::
     // float jet_px_;
     // float jet_py_;
     // float jet_pz_;
-
-    float jet_bjetscore_;
 
     float jet_multijetscore_light_;
     float jet_multijetscore_b_;
@@ -387,7 +384,6 @@ JetNTuplizer::JetNTuplizer(const edm::ParameterSet& iConfig) :
     muons_(consumes<std::vector<l1t::SAMuon>>(iConfig.getParameter<edm::InputTag>("muons"))), 
     genJetsFlavour_   (consumes<reco::JetFlavourInfoMatchingCollection >    (iConfig.getParameter<edm::InputTag>("genJetsFlavour"))),
     fVtxEmu_(consumes<std::vector<l1t::VertexWord>>(iConfig.getParameter<edm::InputTag>("vtx"))),
-    bjetids_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("bjetIDs"))),
     multijetids_(consumes<edm::ValueMap<std::vector<float>>>(iConfig.getParameter<edm::InputTag>("multijetIDs")))
 {
     usesResource("TFileService");
@@ -410,7 +406,6 @@ JetNTuplizer::JetNTuplizer(const edm::ParameterSet& iConfig) :
     // tree_->Branch("jet_py", &jet_py_);
     // tree_->Branch("jet_pz", &jet_pz_);
 
-    tree_->Branch("jet_bjetscore", &jet_bjetscore_);
     tree_->Branch("jet_multijetscore_b", &jet_multijetscore_b_);
     tree_->Branch("jet_multijetscore_light", &jet_multijetscore_light_);
     tree_->Branch("jet_multijetscore_gluon", &jet_multijetscore_gluon_);
@@ -610,8 +605,6 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         }
     }
 
-    edm::Handle<edm::ValueMap<float>> bjetIDhandle;
-    iEvent.getByToken(bjetids_, bjetIDhandle);
 
     edm::Handle<edm::ValueMap<std::vector<float>>> multijetIDhandle;
     iEvent.getByToken(multijetids_, multijetIDhandle);
@@ -695,7 +688,6 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         // jet_py_ = jetv_l1[i]->py();
         // jet_pz_ = jetv_l1[i]->pz();
 
-        jet_bjetscore_ = (*bjetIDhandle)[jetv_l1[i]];
         std::vector<float> jetscores = (*multijetIDhandle)[jetv_l1[i]];
         jet_multijetscore_light_ = jetscores[2];
         jet_multijetscore_b_ = jetscores[0];

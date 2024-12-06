@@ -55,7 +55,6 @@
 #include <TLorentzVector.h>
 #include "DataFormats/JetMatching/interface/JetFlavourInfoMatching.h"
 #include "DataFormats/L1TParticleFlow/interface/PFCandidate.h"
-#include "L1Trigger/Phase2L1ParticleFlow/interface/BJetId.h"
 #include "DataFormats/L1Trigger/interface/VertexWord.h"
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 
@@ -148,7 +147,6 @@ class MyGenTauNTuplizer : public edm::one::EDAnalyzer<edm::one::SharedResources,
         edm::EDGetTokenT<std::vector<l1t::PFTau>> nntaus_;
         edm::EDGetTokenT<reco::JetFlavourInfoMatchingCollection> genJetsFlavour_;
         edm::EDGetTokenT<std::vector<l1t::VertexWord>> const fVtxEmu_;
-        edm::EDGetTokenT<edm::ValueMap<float>> const bjetids_;
         TTree *tree_;
         uint32_t run_, lumi_; uint64_t event_;
 
@@ -219,7 +217,6 @@ class MyGenTauNTuplizer : public edm::one::EDAnalyzer<edm::one::SharedResources,
     float gentau_mass_;
     float gentau_energy_;
 
-    float recojet_bjetscore_;
     float recojet_pt_;
     float recojet_eta_;
     float recojet_phi_;
@@ -244,8 +241,7 @@ MyGenTauNTuplizer::MyGenTauNTuplizer(const edm::ParameterSet& iConfig) :
     scjets_(consumes<std::vector<l1t::PFJet>>(iConfig.getParameter<edm::InputTag>("scPuppiJets"))), // l1tSCPFL1PuppiEmulator
     nntaus_(consumes<std::vector<l1t::PFTau>>(iConfig.getParameter<edm::InputTag>("nnTaus"))), 
     genJetsFlavour_   (consumes<reco::JetFlavourInfoMatchingCollection >    (iConfig.getParameter<edm::InputTag>("genJetsFlavour"))),
-    fVtxEmu_(consumes<std::vector<l1t::VertexWord>>(iConfig.getParameter<edm::InputTag>("vtx"))),
-    bjetids_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("bjetIDs")))
+    fVtxEmu_(consumes<std::vector<l1t::VertexWord>>(iConfig.getParameter<edm::InputTag>("vtx")))
 {
     usesResource("TFileService");
     edm::Service<TFileService> fs;
@@ -257,7 +253,6 @@ MyGenTauNTuplizer::MyGenTauNTuplizer(const edm::ParameterSet& iConfig) :
     tree_->Branch("gentau_mass", &gentau_mass_);
     tree_->Branch("gentau_energy", &gentau_energy_);
 
-    tree_->Branch("recojet_bjetscore", &recojet_bjetscore_);
     tree_->Branch("recojet_pt", &recojet_pt_);
     tree_->Branch("recojet_eta", &recojet_eta_);
     tree_->Branch("recojet_phi", &recojet_phi_);
@@ -331,9 +326,6 @@ MyGenTauNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     }
     iEvent.getByToken(scjets_, scjets);
     iEvent.getByToken(nntaus_, nntaus);
-
-    edm::Handle<edm::ValueMap<float>> bjetIDhandle;
-    iEvent.getByToken(bjetids_, bjetIDhandle);
 
 
     std::vector<reco::GenJetRef> jetv_gen;  
@@ -532,14 +524,12 @@ MyGenTauNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
             recojet_phi_ = jetv_l1[pos_matched_jet]->phi();
             recojet_mass_ = jetv_l1[pos_matched_jet]->mass();
             recojet_match_dR_ = minDR_jet;
-            recojet_bjetscore_ = (*bjetIDhandle)[jetv_l1[pos_matched_jet]];
         }else{
             recojet_pt_ = 0.;
             recojet_eta_ = 0.;
             recojet_phi_ = 0.;
             recojet_mass_ = 0.;
             recojet_match_dR_ = 999.;
-            recojet_bjetscore_ = -1.;
         }
 
         // match to reco TAUS

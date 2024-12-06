@@ -105,7 +105,7 @@ process.genMu = cms.EDFilter("GenParticleSelector",
     cut = cms.string("abs(pdgId) = 13 && status == 1 && pt > 0.5 && abs(eta) < 2.7"),
 )
 
-process.genMuTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+process.genMuTable = cms.EDProducer("SimpleGenParticleFlatTableProducer",
     src = cms.InputTag("genMu"),
     cut = cms.string(""),
     name = cms.string("GenMu"),
@@ -175,7 +175,7 @@ process.genPiFromW = cms.EDFilter("GenParticleSelector",
         src = cms.InputTag("genParticles"),
         cut = cms.string("abs(pdgId) = 211 && numberOfMothers > 0 && abs(motherRef.pdgId) = 24"),
 )
-process.genWTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+process.genWTable = cms.EDProducer("SimpleGenParticleFlatTableProducer",
                 src = cms.InputTag("genW"),
                 cut = cms.string(""),
                 name = cms.string("GenW"),
@@ -192,7 +192,7 @@ process.genWTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
                     pdgId  = Var("pdgId", int, doc="PDG id"),
                 )
             )
-process.genPiTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+process.genPiTable = cms.EDProducer("SimpleGenParticleFlatTableProducer",
                 src = cms.InputTag("genPiFromW"),
                 cut = cms.string(""),
                 name = cms.string("GenPi"),
@@ -337,7 +337,7 @@ process.genPho = cms.EDFilter("GenParticleSelector",
 process.genEle = process.genPho.clone(
     cut = "pdgId == 11 && status == 1",
 )
-process.genPhoTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+process.genPhoTable = cms.EDProducer("SimpleGenParticleFlatTableProducer",
     src = cms.InputTag("genPho"),
     cut = cms.string(""),
     name = cms.string("GenPho"),

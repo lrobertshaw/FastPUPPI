@@ -9,9 +9,9 @@ On top of this, the package contains several utilities and scripts for quick per
 
 
 ## CMSSW area setup 
-```
-cmsrel CMSSW_14_0_0_pre3
-cd CMSSW_14_0_0_pre3/src
+```bash
+cmsrel CMSSW_14_2_0_pre2
+cd CMSSW_14_2_0_pre2/src
 cmsenv
 git cms-init
 git cms-addpkg DataFormats/L1TParticleFlow
@@ -20,29 +20,92 @@ git cms-addpkg L1Trigger/Phase2L1ParticleFlow
 git cms-addpkg L1Trigger/TrackTrigger
 git cms-addpkg SimTracker/TrackTriggerAssociation
 git cms-addpkg L1Trigger/Phase2L1ParticleFlow
-git cms-checkout-topic -u cms-l1t-offline:phase2-l1t-1400pre3_v9
+git cms-checkout-topic -u p2l1pfp:L1PF_14_2_X
+# and for the multijetID model
+git cms-checkout-topic -u CMS-L1T-Jet-Tagging:P2L1JetTagger_14_2_0_pre2
+```
 
-# scripts
-git clone git@github.com:p2l1pfp/FastPUPPI.git -b 14_0_X
+## Jet tagging model setup
+Get hls4ml emulator extras needed for building the jet tagger emulator.
+```bash
+git clone https://github.com/cms-hls4ml/hls4mlEmulatorExtras.git 
+cd hls4mlEmulatorExtras 
+git checkout -b v1.1.3 tags/v1.1.3
+make install
+cd ..
+```
 
+Clone hls libraries for building jet tagger emulator
+```bash
+git clone --quiet https://github.com/Xilinx/HLS_arbitrary_Precision_Types.git hls
+```
+Clone jet tagger emulator and checkout specific branch link
+```bash
+git clone https://github.com/CMS-L1T-Jet-Tagging/hls4ml-jettagger.git
+cd hls4ml-jettagger
+git checkout hls4ml-v081
+make install
+cd ..
+```
+And finally get FastPUPPI
+```bash
+git clone https://github.com:CMS-L1T-Jet-Tagging/FastPUPPI.git -b 14_2_X
 scram b -j8
 ```
+
+## The jet tagging model has been updated?
+
+From the `src` directory
+Add CMSSW fork so that changes can be pulled
+```bash
+git remote add jettag https://github.com/CMS-L1T-Jet-Tagging/cmssw.git
+```
+
+Pull changes from the CMSSW fork
+```bash
+git pull jettag P2L1JetTagger_14_0_0_pre3
+```
+Update the model emulation
+```bash
+cd hls4ml-jettagger
+git pull
+```
+Remove old build files
+```bash
+make clean
+cd MultiJetBaseline
+make clean
+cd ..
+```
+Rebuild
+```bash
+make install
+cd .. 
+```
+Rebuild CMSSW
+```bash
+scram b -j8
+```
+
 
 ## "Slim" input file creation
 
 If you start from GEN-SIM-DIGI-RAW, the first step is to produce the "slimmed" inputs files containing the basic TPs to be able to re-run the Correlator emulator:
 ```
 cd FastPUPPI/NtupleProducer/python/
+cmsRun runInputs140X.py OR
 cmsRun runInputs131X.py OR
 cmsRun runInputs125X.py OR
 cmsRun runInputs110X.py 
 ```
 The supported input campaings are:
+ * `14_0_X` from the Phase2Spring24 campaign (Phase2C17I13M9, Geometry D110) 
  * `13_1_X` from the Phase2Spring23 campaign (Phase2C17I13M9, Geometry D95) 
  * `12_5_X` from the Phase2Fall22 campaign (Phase2C17I13M9, Geometry D88) 
  * `11_0_X` from the HLT TDR campaign (Phase2C9, Geometry D49, HGCal v11).
 
 Existing input files available are:
+ * `140X_v0`: input files from processing `14_0_X` Phase2Spring24 samples in `CMSSW_14_2_0_pre2` + `p2l1pfp:l1ct-142x-v1.0`, from `/eos/cms/store/cmst3/group/l1tr/FastPUPPI/14_2_X/fpinputs_140X/v0/`
  * `131X_v9a`: input files from processing `13_1_X` Phase2Spring23 samples in `CMSSW_14_0_0_pre3` + `cms-l1t-offline:phase2-l1t-1400pre3_v9`, from `/eos/cms/store/cmst3/group/l1tr/FastPUPPI/14_0_X/fpinputs_131X/v9a/`
  * `131X_v3`: input files from processing `13_1_X` Phase2Spring23 samples in `CMSSW_14_0_0_pre3` + `cms-l1t-offline:phase2-l1t-1400pre3_v4`, from `/store/cmst3/group/l1tr/cerminar/14_0_X/fpinputs_131X/v3`
  * `131X_v2`: input files from processing `13_1_X` Phase2Spring23 samples in `CMSSW_14_0_X`, from `/store/cmst3/group/l1tr/cerminar/14_0_X/fpinputs_131X/v2`
@@ -51,7 +114,7 @@ Existing input files available are:
  * `110X_v2`:  input files from processing `11_0_X` HLT TDR samples in `CMSSW_11_1_6`, from `/store/cmst3/group/l1tr/gpetrucc/11_1_0/NewInputs110X/110121.done`: use with `oldInputs_11_1_6()` in `runPerformanceNTuple.py`
 
 Example configurations to run the input job via crab can be found in the [submission](https://github.com/cerminar/submission/) package via the configuration file:
-https://github.com/cerminar/submission/blob/master/submit_INFP_131X.yaml
+https://github.com/cerminar/submission/blob/master/submit_INFP_140X.yaml
 
 
 ## Ntuple creation

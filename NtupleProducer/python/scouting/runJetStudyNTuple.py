@@ -97,7 +97,7 @@ process.puppiExtJetsTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         )
 )
 
-process.genParticleTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+process.genParticleTable = cms.EDProducer("SimpleGenParticleFlatTableProducer",
         name = cms.string("GenParticles"),
         cut  = cms.string("abs(eta) < 5"),
         src = cms.InputTag("genParticlesForMETAllVisible"),
@@ -115,7 +115,7 @@ process.genParticleTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         )
 )
 
-process.genVertexTable = cms.EDProducer("SimpleXYZPointFlatTableProducer",
+process.genVertexTable = cms.EDProducer("SimpleGenParticleFlatTableProducer",
     src = cms.InputTag("genParticles:xyz0"),
     cut = cms.string(""),
     name= cms.string("GenVtx"),
@@ -189,7 +189,7 @@ process.genMu = cms.EDFilter("GenParticleSelector",
     cut = cms.string("abs(pdgId) = 13 && status == 1 && pt > 0.5 && abs(eta) < 2.7"),
 )
 
-process.genMuTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+process.genMuTable = cms.EDProducer("SimpleGenParticleFlatTableProducer",
     src = cms.InputTag("genMu"),
     cut = cms.string(""),
     name = cms.string("GenMu"),
@@ -291,7 +291,7 @@ def isSignal():
             "keep+ 9900001 <= abs(pdgId) <= 9900008",
         )
     )
-    process.genHardParticleTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+    process.genHardParticleTable = cms.EDProducer("SimpleGenParticleFlatTableProducer",
             name = cms.string("GenHard"),
             cut  = cms.string(""),
             src = cms.InputTag("genHard"),

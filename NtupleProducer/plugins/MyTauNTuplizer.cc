@@ -55,7 +55,6 @@
 #include <TLorentzVector.h>
 #include "DataFormats/JetMatching/interface/JetFlavourInfoMatching.h"
 #include "DataFormats/L1TParticleFlow/interface/PFCandidate.h"
-#include "L1Trigger/Phase2L1ParticleFlow/interface/BJetId.h"
 #include "DataFormats/L1Trigger/interface/VertexWord.h"
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 
@@ -149,7 +148,6 @@ class MyTauNTuplizer : public edm::one::EDAnalyzer<edm::one::SharedResources,edm
         edm::EDGetTokenT<std::vector<l1t::PFTau>> nntaus_;
         edm::EDGetTokenT<reco::JetFlavourInfoMatchingCollection> genJetsFlavour_;
         edm::EDGetTokenT<std::vector<l1t::VertexWord>> const fVtxEmu_;
-        edm::EDGetTokenT<edm::ValueMap<float>> const bjetids_;
         TTree *tree_;
         uint32_t run_, lumi_; uint64_t event_;
 
@@ -227,7 +225,6 @@ class MyTauNTuplizer : public edm::one::EDAnalyzer<edm::one::SharedResources,edm
     float tau_py_;
     float tau_pz_;
 
-    float tau_bjetscore_;
     float tau_tauscore_;
 
     float tau_jetmatch_dR_;
@@ -254,8 +251,7 @@ MyTauNTuplizer::MyTauNTuplizer(const edm::ParameterSet& iConfig) :
     scjets_(consumes<std::vector<l1t::PFJet>>(iConfig.getParameter<edm::InputTag>("scPuppiJets"))), // l1tSCPFL1PuppiEmulator
     nntaus_(consumes<std::vector<l1t::PFTau>>(iConfig.getParameter<edm::InputTag>("nnTaus"))), 
     genJetsFlavour_   (consumes<reco::JetFlavourInfoMatchingCollection >    (iConfig.getParameter<edm::InputTag>("genJetsFlavour"))),
-    fVtxEmu_(consumes<std::vector<l1t::VertexWord>>(iConfig.getParameter<edm::InputTag>("vtx"))),
-    bjetids_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("bjetIDs")))
+    fVtxEmu_(consumes<std::vector<l1t::VertexWord>>(iConfig.getParameter<edm::InputTag>("vtx")))
 {
     usesResource("TFileService");
     edm::Service<TFileService> fs;
@@ -274,7 +270,6 @@ MyTauNTuplizer::MyTauNTuplizer(const edm::ParameterSet& iConfig) :
     // tree_->Branch("tau_py", &tau_py_);
     // tree_->Branch("tau_pz", &tau_pz_);
 
-    tree_->Branch("tau_bjetscore", &tau_bjetscore_);
     tree_->Branch("tau_tauscore", &tau_tauscore_);
     
     tree_->Branch("tau_reject", &tau_reject_);
@@ -355,8 +350,6 @@ MyTauNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     iEvent.getByToken(scjets_, scjets);
     iEvent.getByToken(nntaus_, nntaus);
 
-    edm::Handle<edm::ValueMap<float>> bjetIDhandle;
-    iEvent.getByToken(bjetids_, bjetIDhandle);
 
 
     std::vector<reco::GenJetRef> jetv_gen;  
@@ -540,10 +533,8 @@ MyTauNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         }
         if (pos_matched_jet > -1){
             tau_jetmatch_dR_ = minDR_jet;
-            tau_bjetscore_ = (*bjetIDhandle)[jetv_l1[pos_matched_jet]];
         }else{
             tau_jetmatch_dR_ = 999.;
-            tau_bjetscore_ = -1.;
         }
 
 

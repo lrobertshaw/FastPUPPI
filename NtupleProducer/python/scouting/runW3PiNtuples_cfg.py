@@ -79,7 +79,7 @@ def goSignal():
             src = cms.InputTag("genParticles"),
             cut = cms.string("abs(pdgId) = 211 && numberOfMothers > 0 && abs(motherRef.pdgId) = 24"),
     )
-    process.genWTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+    process.genWTable = cms.EDProducer("SimpleGenParticleFlatTableProducer",
                     src = cms.InputTag("genW"),
                     cut = cms.string(""),
                     name = cms.string("GenW"),
@@ -96,7 +96,7 @@ def goSignal():
                         pdgId  = Var("pdgId", int, doc="PDG id"),
                     )
                 )
-    process.genPiTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+    process.genPiTable = cms.EDProducer("SimpleGenParticleFlatTableProducer",
                     src = cms.InputTag("genPiFromW"),
                     cut = cms.string(""),
                     name = cms.string("GenPi"),

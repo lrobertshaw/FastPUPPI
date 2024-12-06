@@ -1,28 +1,31 @@
 import FWCore.ParameterSet.Config as cms
 from Configuration.StandardSequences.Eras import eras
-from PhysicsTools.NanoAOD.common_cff import Var, ExtVar 
+from PhysicsTools.NanoAOD.common_cff import Var, ExtVar
+
+def LazyVar(expr, valtype, doc=None, precision=-1):
+    return Var(expr, valtype, doc, precision, lazyEval=True)
+
 
 process = cms.Process("RESP", eras.Phase2C17I13M9)
 
 process.load('Configuration.StandardSequences.Services_cff')
 process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
-process.options   = cms.untracked.PSet( wantSummary = cms.untracked.bool(False), allowUnscheduled = cms.untracked.bool(False) )
+process.options   = cms.untracked.PSet( wantSummary = cms.untracked.bool(True), allowUnscheduled = cms.untracked.bool(False) )
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1))
 process.MessageLogger.cerr.FwkReport.reportEvery = 1
 
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('file:/eos/cms/store/cmst3/group/l1tr/FastPUPPI/14_0_X/fpinputs_131X/v9a/VBFHtt_PU200/inputs131X_1.root'),
+    fileNames = cms.untracked.vstring('file:inputs125X.root'),
     inputCommands = cms.untracked.vstring("keep *", 
             "drop l1tPFClusters_*_*_*",
             "drop l1tPFTracks_*_*_*",
             "drop l1tPFCandidates_*_*_*",
-            "drop l1tTkPrimaryVertexs_*_*_*",
-            "drop l1tKMTFTracks_*_*_*")
+            "drop l1tTkPrimaryVertexs_*_*_*")
 )
 
-process.load('Configuration.Geometry.GeometryExtended2026D95Reco_cff')
-process.load('Configuration.Geometry.GeometryExtended2026D95_cff')
+process.load('Configuration.Geometry.GeometryExtended2026D110Reco_cff')
+process.load('Configuration.Geometry.GeometryExtended2026D110_cff')
 process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('Configuration.StandardSequences.SimL1Emulator_cff')
 process.load('SimCalorimetry.HcalTrigPrimProducers.hcaltpdigi_cff') # needed to read HCal TPs
@@ -35,13 +38,16 @@ from RecoJets.JetProducers.ak4PFJets_cfi import ak4PFJets
 from RecoMET.METProducers.pfMet_cfi import pfMet
 
 from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, '131X_mcRun4_realistic_v9', '')
+process.GlobalTag = GlobalTag(process.GlobalTag, '141X_mcRun4_realistic_v3', '')
 
 # NOTE: we need this to avoid saving the stubs
 process.l1tTrackSelectionProducer.processSimulatedTracks = False
 
 from L1Trigger.L1CaloTrigger.l1tPhase2L1CaloEGammaEmulator_cfi import l1tPhase2L1CaloEGammaEmulator
 process.l1tPhase2L1CaloEGammaEmulator = l1tPhase2L1CaloEGammaEmulator.clone()
+
+from L1Trigger.Phase2L1ParticleFlow.L1NNTauProducer_cff import l1tNNTauProducerPuppi
+process.l1tNNTauProducerPuppi = l1tNNTauProducerPuppi.clone()
 
 process.extraPFStuff = cms.Task(
         process.l1tPhase2L1CaloEGammaEmulator,
@@ -125,43 +131,18 @@ process.ntuple = cms.EDAnalyzer("ResponseNTuplizer",
     copyVecUInts = cms.VInputTag(),
 )
 
-# create new jet tupler
-process.jetntuple = cms.EDAnalyzer("JetNTuplizer",
-    genJets = cms.InputTag("ak4GenJetsNoNu"),
-    genParticles = cms.InputTag("genParticles"),
-
-    # baseline TRK
-    # scPuppiJets = cms.InputTag("l1tSC4PFL1PuppiEmulator"),
-    # scPuppiJetsCorr = cms.InputTag("l1tSC4PFL1PuppiCorrectedEmulator"),
-
-    # extended TRK
-    scPuppiJets = cms.InputTag("l1tSC4PFL1PuppiExtendedEmulator"),
-    scPuppiJetsCorr = cms.InputTag("l1tSC4PFL1PuppiExtendedCorrectedEmulator"),
-
-    nnTaus = cms.InputTag("l1tNNTauProducerPuppi","L1PFTausNN"),
-    genJetsFlavour = cms.InputTag("genFlavourInfo"),
-    vtx = cms.InputTag("l1tVertexFinderEmulator","L1VerticesEmulation"),
-    bjetIDs = cms.InputTag("l1tBJetProducerPuppiCorrectedEmulator", "L1PFBJets"),
-    multijetIDs = cms.InputTag("l1tMultiJetProducerPuppiCorrectedEmulator", "L1PFMultiJets"),
-    # bjetIDs = cms.InputTag("l1tBJetProducerPuppiEmulator", "L1PFBJets"),
-
-    electrons = cms.InputTag("l1tLayer2EG","L1CtTkElectron"),
-    # muons = cms.InputTag("l1tLayer1","Puppi"),
-    muons = cms.InputTag("l1tSAMuonsGmt","promptSAMuons"),
-)
-
 process.extraPFStuff.add(process.l1tPFTracksFromL1Tracks)
 
 process.l1pfjetTable = cms.EDProducer("L1PFJetTableProducer",
     gen = cms.InputTag("ak4GenJetsNoNu"),
-    # commonSel = cms.string("pt > 5 && abs(eta) < 5.0"),
-    commonSel = cms.string("pt > 15 && abs(eta) < 5.0"),
+    commonSel = cms.string("pt > 5 && abs(eta) < 5.0"),
     drMax = cms.double(0.2),
     minRecoPtOverGenPt = cms.double(0.1),
     jets = cms.PSet(
         Gen = cms.InputTag("ak4GenJetsNoNu"),
         Gen_sel = cms.string("pt > 15"),
     ),
+    # multijetIDs = cms.InputTag("l1tMultiJetProducerPuppiCorrectedEmulator", "L1PFMultiJets"),
     moreVariables = cms.PSet(
         nDau = cms.string("numberOfDaughters()"),
     ),
@@ -180,21 +161,15 @@ monitorPerf("L1TK",   "l1tLayer1:TK")
 monitorPerf("L1PF",    "l1tLayer1:PF")
 monitorPerf("L1Puppi", "l1tLayer1:Puppi")
 
-# turn off all other nano-like outputs
-
 # to check available tags:
 #process.content = cms.EDAnalyzer("EventContentAnalyzer")
 process.p = cms.Path(
-        # process.ntuple + #process.content +
-        # process.l1pfjetTable + 
-        # process.l1pfmetTable + process.l1pfmetCentralTable
+        process.ntuple + #process.content +
+        process.l1pfjetTable + 
+        process.l1pfmetTable + process.l1pfmetCentralTable
         )
-process.endTuple = cms.EndPath(process.jetntuple)
 process.p.associate(process.extraPFStuff)
-process.p.associate(process.L1TPFJetsExtendedTask)
-process.p.associate(process.L1TBJetsTask)
-process.p.associate(process.L1TMultiJetsTask)
-process.TFileService = cms.Service("TFileService", fileName = cms.string("jetTuple.root"))
+process.TFileService = cms.Service("TFileService", fileName = cms.string("perfTuple.root"))
 
 # for full debug:
 #process.out = cms.OutputModule("PoolOutputModule",
@@ -210,7 +185,7 @@ process.outnano = cms.OutputModule("NanoAODOutputModule",
     compressionLevel = cms.untracked.int32(4),
     compressionAlgorithm = cms.untracked.string("ZLIB"),
 )
-# process.end = cms.EndPath(process.outnano)
+process.end = cms.EndPath(process.outnano)
 
 # Below for more debugging
 if True:
@@ -228,6 +203,7 @@ if True:
     process.ntuple.objects.PhGenAcc = cms.VInputTag(cms.InputTag("genInAcceptance"))
     process.ntuple.objects.PhGenAcc_sel = cms.string("pdgId == 22")
     process.extraPFStuff.add(process.genInAcceptance)
+
 def respOnly():
     process.p.remove(process.l1pfjetTable)
     process.p.remove(process.l1pfmetTable)
@@ -278,42 +254,28 @@ def addCalib():
     process.ntuple.objects.L1HFCalo  = cms.VInputTag('l1tPFClustersFromCombinedCaloHF:calibrated')
     process.ntuple.objects.L1HGCalEM = cms.VInputTag('l1tPFClustersFromHGC3DClustersEM', )
 
+def addNNPuppiTaus():
+    process.extraPFStuff.add(process.l1tNNTauProducerPuppi)
+    process.l1pfjetTable.jets.nnPuppiTau = cms.InputTag('l1tNNTauProducerPuppi', "L1PFTausNN")
+
+def addMultitagging(trktype = "baseline"):
+    process.load("L1Trigger.Phase2L1ParticleFlow.L1MultiJetProducer_cff")
+    if trktype == "extended":
+        process.l1tMultiJetProducerPuppiCorrectedEmulator.jets = cms.InputTag("l1tSC4PFL1PuppiExtendedEmulator")
+    else:
+        process.l1tMultiJetProducerPuppiCorrectedEmulator.jets = cms.InputTag("l1tSC4PFL1PuppiEmulator")
+    process.l1tMultiJetProducerPuppiCorrectedEmulator.maxJets = cms.int32(500)
+    process.l1tMultiJetProducerPuppiCorrectedEmulator.MultiJetPath = cms.string(os.environ['CMSSW_BASE']+"/src/hls4ml-jettagger/MultiJetBaseline")
+    process.extraPFStuff.add(process.L1TMultiJetsTask)
+    # process.l1pfjetTable.jets.multijetid = cms.InputTag("l1tMultiJetProducerPuppiCorrectedEmulator", "L1PFMultiJets")
+
 def addSeededConeJets():
     process.extraPFStuff.add(process.L1TPFJetsTask)
     process.l1pfjetTable.jets.scPuppiSim = cms.InputTag('l1tSC4PFL1Puppi')
     process.l1pfjetTable.jets.scPuppi = cms.InputTag('l1tSC4PFL1PuppiEmulator')
+    # process.l1pfjetTable.jets.scPuppi_filljetid = cms.string("True")
     process.l1pfjetTable.jets.scPuppiCorr = cms.InputTag('l1tSC4PFL1PuppiCorrectedEmulator')
     process.l1pfmetTable.mets.scPuppiCorrMHT = cms.InputTag("l1tSC4PFL1PuppiCorrectedEmulatorMHT")
-    process.extraPFStuff.add(process.L1TPFJetsExtendedTask)
-    process.l1pfjetTable.jets.scPuppiExtended = cms.InputTag('l1tSC4PFL1PuppiExtendedEmulator')
-    process.l1pfjetTable.jets.scPuppiExtendedCorr = cms.InputTag('l1tSC4PFL1PuppiExtendedCorrectedEmulator')
-
-# def addBtagging(): #baselineTRK
-#     process.load("L1Trigger.Phase2L1ParticleFlow.L1BJetProducer_cff")
-#     process.l1tBJetProducerPuppiCorrectedEmulator.jets = cms.InputTag("l1tSC4PFL1PuppiEmulator")
-#     process.l1tBJetProducerPuppiCorrectedEmulator.maxJets = cms.int32(500)
-#     process.extraPFStuff.add(process.L1TBJetsTask)
-#     #process.l1pfjetTable.jets.scPuppiBJet = cms.InputTag('l1tBJetProducerPuppiCorrectedEmulator')    
-
-def addBtagging(): #extended TRK
-    process.load("L1Trigger.Phase2L1ParticleFlow.L1BJetProducer_cff")
-    process.l1tBJetProducerPuppiCorrectedEmulator.jets = cms.InputTag("l1tSC4PFL1PuppiExtendedEmulator")
-    process.l1tBJetProducerPuppiCorrectedEmulator.maxJets = cms.int32(500)
-    process.extraPFStuff.add(process.L1TBJetsTask)
-    #process.l1pfjetTable.jets.scPuppiBJet = cms.InputTag('l1tBJetProducerPuppiCorrectedEmulator')  
-
-def addMultitagging(): #extended TRK
-    process.load("L1Trigger.Phase2L1ParticleFlow.L1MultiJetProducer_cff")
-    process.l1tMultiJetProducerPuppiCorrectedEmulator.jets = cms.InputTag("l1tSC4PFL1PuppiExtendedEmulator")
-    process.l1tMultiJetProducerPuppiCorrectedEmulator.maxJets = cms.int32(500)
-    process.l1tMultiJetProducerPuppiCorrectedEmulator.MultiJetPath = cms.string(os.environ['CMSSW_BASE']+"/src/hls4ml-jettagger/JetTaggerNN")
-    process.extraPFStuff.add(process.L1TMultiJetsTask)
-    #process.l1pfjetTable.jets.scPuppiBJet = cms.InputTag('l1tBJetProducerPuppiCorrectedEmulator')    
-
-def addTaus():
-    process.load("L1Trigger.Phase2L1ParticleFlow.L1NNTauProducer_cff")
-    process.l1tNNTauProducerPuppi.maxtaus = cms.int32(500)
-    process.extraPFStuff.add(process.l1tNNTauProducerPuppi)
 
 def addPhase1Jets():
     process.extraPFStuff.add(process.l1tPhase1JetProducer9x9, process.l1tPhase1JetCalibrator9x9, process.l1tPhase1JetSumsProducer9x9)
@@ -346,14 +308,10 @@ def addJetConstituents(N):
         for var in "pt", "eta", "phi", "mass", "pdgId":
             setattr(process.l1pfjetTable.moreVariables, "dau%d_%s" % (i,var), cms.string("? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i,i,var)))
         setattr(process.l1pfjetTable.moreVariables, "dau%d_%s" % (i,"vz"), cms.string("? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i,i,"vertex.Z")))
-        setattr(process.l1pfjetTable.moreVariables, "dau%d_%s" % (i,"z0"), cms.string("? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i,i,"z0")))
-        setattr(process.l1pfjetTable.moreVariables, "dau%d_%s" % (i,"dxy"), cms.string("? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i,i,"dxy")))
-        setattr(process.l1pfjetTable.moreVariables, "dau%d_%s" % (i,"puppiWeight"), cms.string("? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i,i,"puppiWeight")))
 
 def addGenJetFlavourTable():
     process.load("PhysicsTools.JetMCAlgos.AK4PFJetsMCFlavourInfos_cfi")
     process.load("PhysicsTools.JetMCAlgos.HadronAndPartonSelector_cfi")
-    process.selectedHadronsAndPartons.partonMode = cms.string("Pythia8")
     process.genFlavourInfo = process.ak4JetFlavourInfos.clone(jets = "ak4GenJetsNoNu")
     process.genJetFlavourTable = cms.EDProducer("GenJetFlavourTableProducer",
         name = cms.string("GenJets"),
@@ -383,8 +341,9 @@ def addTkPtCut(ptCut):
     monitorPerf("L1PFTkPt3", "l1tLayer1TkPt3:PF")
     monitorPerf("L1PuppiTkPt3", "l1tLayer1TkPt3:Puppi")
 
-def addGenLep(pdgs=[11,13,22]):
-    genLepTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+
+def addGen(pdgs):
+    genLepTable = cms.EDProducer("SimpleGenParticleFlatTableProducer",
                 src = cms.InputTag("genParticles"),
                 doc = cms.string("gen leptons"),
                 singleton = cms.bool(False), # the number of entries is variable
@@ -429,6 +388,21 @@ def addGenLep(pdgs=[11,13,22]):
                         name = process.genPhTable.name
             )
             process.extraPFStuff.add(process.genPhTable, process.genPhExtTable)
+        elif pdgId == 211:
+            process.genPiTable = genLepTable.clone(
+                        cut  = cms.string("abs(pdgId) == %d && status == 1 && pt > 2" % pdgId),
+                        name = cms.string("GenPi"))
+            process.genPiExtTable = genLepTableExt.clone(
+                        cut = process.genPiTable.cut,
+                        name = process.genPiTable.name
+            )
+            process.extraPFStuff.add(process.genPiTable, process.genPiExtTable)
+
+def addGenPi(pdgs=[211]):
+    addGen(pdgs)
+
+def addGenLep(pdgs=[11,13,22]):
+    addGen(pdgs)
 
 
 def addStaMu():
@@ -444,7 +418,7 @@ def addStaMu():
                             phi = Var("phi", float,precision=8),
                             eta  = Var("eta", float,precision=8),
                             charge  = Var("charge", int, doc="charge id"),
-                            quality  = Var("hwQual", int, doc="charge id"),
+                            quality  = LazyVar("hwQual", int, doc="charge id"),
                         )
     )
     process.extraPFStuff.add(process.staMuTable)
@@ -459,52 +433,52 @@ def addHGCalTPs():
                 singleton = cms.bool(False), # the number of entries is variable
                 extension = cms.bool(False), # this is the main table
                 variables = cms.PSet(
-                    pt  = Var("pt",  float,precision=8),
-                    phi = Var("phi", float,precision=8),
-                    eta  = Var("eta", float,precision=8),
-                    nTcs = Var("constituents.size",  int,precision=8),
-                    ptEm = Var("iPt('EM')",  float,precision=8),
-                    hwQual = Var("hwQual",  int,precision=8),
-                    showerlength = Var("showerLength", int),
-                    coreshowerlength = Var("coreShowerLength", int),
-                    firstlayer = Var("firstLayer", int),
-                    maxlayer = Var("maxLayer", int),
-                    seetot = Var("sigmaEtaEtaTot", float),
-                    seemax = Var("sigmaEtaEtaMax", float),
-                    spptot = Var("sigmaPhiPhiTot", float),
-                    sppmax = Var("sigmaPhiPhiMax", float),
-                    szz = Var("sigmaZZ", float),
-                    srrtot = Var("sigmaRRTot", float),
-                    srrmax = Var("sigmaRRMax", float),
-                    srrmean = Var("sigmaRRMean", float),
-                    emaxe = Var("eMax/energy", float),
-                    hoe = Var("hOverE", float),
-                    meanz = Var("abs(zBarycenter)", float),
-                    layer10 = Var("layer10percent", float),
-                    layer50 = Var("layer50percent", float),
-                    layer90 = Var("layer90percent", float),
-                    ntc67 = Var("triggerCells67percent", float),
-                    ntc90 = Var("triggerCells90percent", float),
-                    varRR = Var("varRR", float),
-                    varZZ = Var("varZZ", float),
-                    varEtaEta = Var("varEtaEta", float),
-                    varPhiPhi = Var("varPhiPhi", float),
-                    first1layers = Var("first1layers", float),
-                    first3layers = Var("first3layers", float),
-                    first5layers = Var("first5layers", float),
-                    firstHcal1layers = Var("firstHcal1layers", float),
-                    firstHcal3layers = Var("firstHcal3layers", float),
-                    firstHcal5layers = Var("firstHcal5layers", float),
-                    last1layers = Var("last1layers", float),
-                    last3layers = Var("last3layers", float),
-                    last5layers = Var("last5layers", float),
-                    emax1layers = Var("emax1layers", float),
-                    emax3layers = Var("emax3layers", float),
-                    emax5layers = Var("emax5layers", float),
-                    eot = Var("eot", float),
-                    ebm0 = Var("ebm0", int),
-                    ebm1 = Var("ebm1", int),
-                    hbm = Var("hbm", int),
+                    pt  = LazyVar("pt",  float,precision=8),
+                    phi = LazyVar("phi", float,precision=8),
+                    eta  = LazyVar("eta", float,precision=8),
+                    nTcs = LazyVar("constituents.size",  int,precision=8),
+                    ptEm = LazyVar("iPt('EM')",  float,precision=8),
+                    hwQual = LazyVar("hwQual",  int,precision=8),
+                    showerlength = LazyVar("showerLength", int),
+                    coreshowerlength = LazyVar("coreShowerLength", int),
+                    firstlayer = LazyVar("firstLayer", int),
+                    maxlayer = LazyVar("maxLayer", int),
+                    seetot = LazyVar("sigmaEtaEtaTot", float),
+                    seemax = LazyVar("sigmaEtaEtaMax", float),
+                    spptot = LazyVar("sigmaPhiPhiTot", float),
+                    sppmax = LazyVar("sigmaPhiPhiMax", float),
+                    szz = LazyVar("sigmaZZ", float),
+                    srrtot = LazyVar("sigmaRRTot", float),
+                    srrmax = LazyVar("sigmaRRMax", float),
+                    srrmean = LazyVar("sigmaRRMean", float),
+                    emaxe = LazyVar("eMax/energy", float),
+                    hoe = LazyVar("hOverE", float),
+                    meanz = LazyVar("abs(zBarycenter)", float),
+                    layer10 = LazyVar("layer10percent", float),
+                    layer50 = LazyVar("layer50percent", float),
+                    layer90 = LazyVar("layer90percent", float),
+                    ntc67 = LazyVar("triggerCells67percent", float),
+                    ntc90 = LazyVar("triggerCells90percent", float),
+                    varRR = LazyVar("varRR", float),
+                    varZZ = LazyVar("varZZ", float),
+                    varEtaEta = LazyVar("varEtaEta", float),
+                    varPhiPhi = LazyVar("varPhiPhi", float),
+                    first1layers = LazyVar("first1layers", float),
+                    first3layers = LazyVar("first3layers", float),
+                    first5layers = LazyVar("first5layers", float),
+                    firstHcal1layers = LazyVar("firstHcal1layers", float),
+                    firstHcal3layers = LazyVar("firstHcal3layers", float),
+                    firstHcal5layers = LazyVar("firstHcal5layers", float),
+                    last1layers = LazyVar("last1layers", float),
+                    last3layers = LazyVar("last3layers", float),
+                    last5layers = LazyVar("last5layers", float),
+                    emax1layers = LazyVar("emax1layers", float),
+                    emax3layers = LazyVar("emax3layers", float),
+                    emax5layers = LazyVar("emax5layers", float),
+                    eot = LazyVar("eot", float),
+                    ebm0 = LazyVar("ebm0", int),
+                    ebm1 = LazyVar("ebm1", int),
+                    hbm = LazyVar("hbm", int),
                     )
             )
     from L1Trigger.Phase2L1ParticleFlow.l1tPFClustersFromHGC3DClusters_cfi import l1tPFClustersFromHGC3DClusters
@@ -542,29 +516,29 @@ def addPFLep(pdgs=[11,13,22],opts=["PF","Puppi"], postfix=""):
                             name = cms.string(w+"Mu"+postfix))
                 setattr(process, w+"Mu"+postfix+"Table", muTable)
                 process.extraPFStuff.add(muTable)
-                muTable.variables.quality = Var("? muon.isNonnull ? muon.hwQual : -1", int, doc="Quality")
+                muTable.variables.quality = LazyVar("? muon.isNonnull ? muon.hwQual : -1", int, doc="Quality")
             elif pdgId == 11:
                 elTable = pfLepTable.clone(
                             cut  = cms.string("abs(pdgId) == %d && pt > 2" % pdgId),
                             name = cms.string(w+"El"+postfix))
                 setattr(process, w+"El"+postfix+"Table", elTable)
                 process.extraPFStuff.add(elTable)
-                elTable.variables.hwEmID = Var("? pfCluster.isNonnull ? pfCluster.hwEmID : -1", int, doc="Quality")
-                elTable.variables.pfEmID = Var("? pfCluster.isNonnull ? pfCluster.egVsPionMVAOut : -1", float, precision=8)
-                elTable.variables.pfPuID = Var("? pfCluster.isNonnull ? pfCluster.egVsPUMVAOut : -1", float, precision=8)
-                elTable.variables.clPt   = Var("? pfCluster.isNonnull ? pfCluster.pt : -1", float, precision=8)
-                elTable.variables.clEmEt = Var("? pfCluster.isNonnull ? pfCluster.emEt : -1", float, precision=8)
+                elTable.variables.hwEmID = LazyVar("? pfCluster.isNonnull ? pfCluster.hwEmID : -1", int, doc="Quality")
+                elTable.variables.pfEmID = LazyVar("? pfCluster.isNonnull ? pfCluster.egVsPionMVAOut : -1", float, precision=8)
+                elTable.variables.pfPuID = LazyVar("? pfCluster.isNonnull ? pfCluster.egVsPUMVAOut : -1", float, precision=8)
+                elTable.variables.clPt   = LazyVar("? pfCluster.isNonnull ? pfCluster.pt : -1", float, precision=8)
+                elTable.variables.clEmEt = LazyVar("? pfCluster.isNonnull ? pfCluster.emEt : -1", float, precision=8)
             elif pdgId == 22:
                 phTable = pfLepTable.clone(
                             cut  = cms.string("abs(pdgId) == %d && pt > 8" % pdgId),
                             name = cms.string(w+"Ph"+postfix))
-                phTable.variables.hwEmID = Var("hwEmID", int)
-                phTable.variables.pfPuID = Var("? pfCluster.isNonnull ? pfCluster.egVsPUMVAOut : -1", float, precision=8)
-                elTable.variables.pfEmID = Var("? pfCluster.isNonnull ? pfCluster.egVsPionMVAOut : -1", float, precision=8)
-                elTable.variables.clPt   = Var("? pfCluster.isNonnull ? pfCluster.pt : -1", float, precision=8)
-                elTable.variables.clEmEt = Var("? pfCluster.isNonnull ? pfCluster.emEt : -1", float, precision=8)
+                phTable.variables.hwEmID = LazyVar("hwEmID", int)
+                phTable.variables.pfPuID = LazyVar("? pfCluster.isNonnull ? pfCluster.egVsPUMVAOut : -1", float, precision=8)
+                elTable.variables.pfEmID = LazyVar("? pfCluster.isNonnull ? pfCluster.egVsPionMVAOut : -1", float, precision=8)
+                elTable.variables.clPt   = LazyVar("? pfCluster.isNonnull ? pfCluster.pt : -1", float, precision=8)
+                elTable.variables.clEmEt = LazyVar("? pfCluster.isNonnull ? pfCluster.emEt : -1", float, precision=8)
                 if w == "Puppi":
-                    phTable.variables.puppiW = Var("puppiWeight", float, precision=8)
+                    phTable.variables.puppiW = LazyVar("puppiWeight", float, precision=8)
                 setattr(process, w+"Ph"+postfix+"Table", phTable)
                 process.extraPFStuff.add(phTable)
 
@@ -581,7 +555,7 @@ def addStaEG(postfix=""):
                             pt  = Var("pt",  float,precision=8),
                             phi = Var("phi", float,precision=8),
                             eta  = Var("eta", float,precision=8),
-                            hwQual    = Var("hwQual", int, doc="id"),
+                            hwQual    = LazyVar("hwQual", int, doc="id"),
                         )
                     )
         return staEgTable
@@ -608,26 +582,26 @@ def addTkEG(doL1=False, doL2=True, postfix=""):
                             pt  = Var("pt",  float,precision=8),
                             phi = Var("phi", float,precision=8),
                             eta  = Var("eta", float,precision=8),
-                            hwQual    = Var("hwQual", int, doc="id"),
-                            tkIso   = Var("trkIsol", float, precision=8),
-                            tkIsoPV  = Var("trkIsolPV", float, precision=8),
-                            pfIso   = Var("pfIsol", float, precision=8),
-                            pfIsoPV  = Var("pfIsolPV", float, precision=8),
-                            puppiIso   = Var("puppiIsol", float, precision=8),
-                            puppiIsoPV  = Var("puppiIsolPV", float, precision=8),
+                            hwQual    = LazyVar("hwQual", int, doc="id"),
+                            tkIso   = LazyVar("trkIsol", float, precision=8),
+                            tkIsoPV  = LazyVar("trkIsolPV", float, precision=8),
+                            pfIso   = LazyVar("pfIsol", float, precision=8),
+                            pfIsoPV  = LazyVar("pfIsolPV", float, precision=8),
+                            puppiIso   = LazyVar("puppiIsol", float, precision=8),
+                            puppiIsoPV  = LazyVar("puppiIsolPV", float, precision=8),
                         )
                     )
         tkEleTable = tkEmTable.clone(
                         name = cms.string("TkEle"+slice+postfix),
                         src = cms.InputTag(tkele_inputtag),
                     )
-        tkEleTable.variables.charge = Var("charge", int, doc="charge")
-        tkEleTable.variables.vz     = Var("trkzVtx",  float,precision=8)
-        tkEleTable.variables.tkEta = Var("trkPtr.eta", float,precision=8)
-        tkEleTable.variables.tkPhi = Var("trkPtr.phi", float,precision=8)
-        tkEleTable.variables.tkPt = Var("trkPtr.momentum.perp", float,precision=8)
-        tkEleTable.variables.caloEta = Var("egCaloPtr.eta", float,precision=8)
-        tkEleTable.variables.caloPhi = Var("egCaloPtr.phi", float,precision=8)
+        tkEleTable.variables.charge = LazyVar("charge", int, doc="charge")
+        tkEleTable.variables.vz     = LazyVar("trkzVtx",  float,precision=8)
+        tkEleTable.variables.tkEta = LazyVar("trkPtr.eta", float,precision=8)
+        tkEleTable.variables.tkPhi = LazyVar("trkPtr.phi", float,precision=8)
+        tkEleTable.variables.tkPt = LazyVar("trkPtr.momentum.perp", float,precision=8)
+        tkEleTable.variables.caloEta = LazyVar("egCaloPtr.eta", float,precision=8)
+        tkEleTable.variables.caloPhi = LazyVar("egCaloPtr.phi", float,precision=8)
         return tkEmTable, tkEleTable
                                    
     if doL1:    
@@ -657,15 +631,15 @@ def addDecodedTk(regs=['HGCal','Barrel']):
                             pt  = Var("pt",  float,precision=8),
                             phi = Var("phi", float,precision=8),
                             eta  = Var("eta", float,precision=8),
-                            caloPhi = Var("caloPhi", float,precision=8),
-                            caloEta  = Var("caloEta", float,precision=8),
-                            vz = Var("vz", float,precision=8),
-                            chi2RPhi = Var("trackWord.getChi2RPhi", float,precision=8),
-                            chi2RZ = Var('trackWord.getChi2RZ', float, precision=8),
-                            chi2Bend = Var('trackWord.getBendChi2', float, precision=8),
-                            hitPattern = Var('trackWord.getHitPattern', int),
-                            nStubs = Var('trackWord.getNStubs', int),
-                            mvaQual = Var('trackWord.getMVAQuality', int),
+                            caloPhi = LazyVar("caloPhi", float,precision=8),
+                            caloEta  = LazyVar("caloEta", float,precision=8),
+                            vz = LazyVar("vz", float,precision=8),
+                            chi2RPhi = LazyVar("trackWord.getChi2RPhi", float,precision=8),
+                            chi2RZ = LazyVar('trackWord.getChi2RZ', float, precision=8),
+                            chi2Bend = LazyVar('trackWord.getBendChi2', float, precision=8),
+                            hitPattern = LazyVar('trackWord.getHitPattern', int),
+                            nStubs = LazyVar('trackWord.getNStubs', int),
+                            mvaQual = LazyVar('trackWord.getMVAQuality', int),
                         )
                     )
         setattr(process, f"decTk{reg}Table", decTkTable)
@@ -683,24 +657,24 @@ def addEGCrystalClusters() -> None:
                                         singleton = cms.bool(False), # the number of entries is variable
                                         extension = cms.bool(False), # this is the main table
                                         variables = cms.PSet(
-                                            isolation  = Var("isolation", float,precision=8),
+                                            isolation  = LazyVar("isolation", float,precision=8),
                                             pt  = Var("pt",  float,precision=8),
                                             eta  = Var("eta", float,precision=8),
                                             phi = Var("phi", float,precision=8),
-                                            calibratedPt = Var("calibratedPt", float,precision=8),
-                                            hovere = Var("hovere", float,precision=8),
-                                            puCorrPt = Var("puCorrPt", float,precision=8),
-                                            bremStrength = Var("bremStrength", float,precision=8),
-                                            e2x2 = Var("e2x2", float,precision=8),
-                                            e2x5 = Var("e2x5", float,precision=8),
-                                            e3x5 = Var("e3x5", float,precision=8),
-                                            e5x5 = Var("e5x5", float,precision=8),
-                                            standaloneWP = Var("standaloneWP", int,precision=8),
-                                            electronWP98 = Var("electronWP98", int,precision=8),
-                                            photonWP80 = Var("photonWP80", int,precision=8),
-                                            electronWP90 = Var("electronWP90", int,precision=8),
-                                            looseL1TkMatchWP = Var("looseL1TkMatchWP", int,precision=8),
-                                            stage2effMatch= Var("stage2effMatch", int,precision=8),
+                                            calibratedPt = LazyVar("calibratedPt", float,precision=8),
+                                            hovere = LazyVar("hovere", float,precision=8),
+                                            puCorrPt = LazyVar("puCorrPt", float,precision=8),
+                                            bremStrength = LazyVar("bremStrength", float,precision=8),
+                                            e2x2 = LazyVar("e2x2", float,precision=8),
+                                            e2x5 = LazyVar("e2x5", float,precision=8),
+                                            e3x5 = LazyVar("e3x5", float,precision=8),
+                                            e5x5 = LazyVar("e5x5", float,precision=8),
+                                            standaloneWP = LazyVar("standaloneWP", int,precision=8),
+                                            electronWP98 = LazyVar("electronWP98", int,precision=8),
+                                            photonWP80 = LazyVar("photonWP80", int,precision=8),
+                                            electronWP90 = LazyVar("electronWP90", int,precision=8),
+                                            looseL1TkMatchWP = LazyVar("looseL1TkMatchWP", int,precision=8),
+                                            stage2effMatch= LazyVar("stage2effMatch", int,precision=8),
                                         )
             )
         return CrystalClustersTable
@@ -766,6 +740,24 @@ def addEDMOutput():
     process.end = cms.EndPath(process.out)
     process.maxEvents.input = 10
 
+if False:
+    process.source.fileNames  = [ 'file:/eos/cms/store/cmst3/group/l1tr/FastPUPPI/14_2_X/fpinputs_140X/v0/DoubleElectron_FlatPt-1To100_PU200/inputs140X_1-1.root'] 
+    #goMT(4)
+    addAllLeps()
+    addAllJets()
+    addMultitagging()
+    addNNPuppiTaus()
+
+    if False:
+        #process.source.eventsToProcess = cms.untracked.VEventRange("1:1376:240626","1:1376:240627","1:1376:240628","1:1376:240642","1:1376:240638")
+        process.source.eventsToProcess = cms.untracked.VEventRange("1:1376:240656", "1:1376:240742", "1:1108:193756", "1:1108:193762", "1:1108:193772")
+        #process.source.eventsToProcess = cms.untracked.VEventRange()
+        #process.maxEvents.input = 10
+        addEDMOutput()
+        R='HGCal'
+        getattr(process, 'l1tLayer1'+R).trkPtCut = 10
+        getattr(process, 'l1tLayer1'+R).pfAlgoParameters.debug = True
+
 def saveCands():
     process.l1pfcandTable = cms.EDProducer("L1PFCandTableProducer",
                                            commonSel = cms.string("pt > 0.0 && abs(eta) < 10.0"),
@@ -794,30 +786,5 @@ def saveGenCands():
                                       )
     process.p += process.gencandTable
 
-if True:
-    process.source.fileNames  = [ 'file:/eos/cms/store/cmst3/group/l1tr/FastPUPPI/14_0_X/fpinputs_131X/v9a/TT2L_PU200/inputs131X_0.root'] 
-    goMT(4)
-    
-    addAllJets()
-    addAllLeps()
-    # addSeededConeJets()
-    addBtagging()  
-    addMultitagging()  
-    addTaus()  
-    addJetConstituents(30)
-    addGenJetFlavourTable()
-    # saveCands() # not needed for jet studies per se, but saves all L1 PF & PUPPI candidates
-
-
-    if False:
-        #process.source.eventsToProcess = cms.untracked.VEventRange("1:1376:240626","1:1376:240627","1:1376:240628","1:1376:240642","1:1376:240638")
-        process.source.eventsToProcess = cms.untracked.VEventRange("1:1376:240656", "1:1376:240742", "1:1108:193756", "1:1108:193762", "1:1108:193772")
-        #process.source.eventsToProcess = cms.untracked.VEventRange()
-        #process.maxEvents.input = 10
-        addEDMOutput()
-        R='HGCal'
-        getattr(process, 'l1tLayer1'+R).trkPtCut = 10
-        getattr(process, 'l1tLayer1'+R).pfAlgoParameters.debug = True
-
-# open("debugDumpJetNTuple.py", "w").write(process.dumpPython())
-process.source.fileNames = ["file:inputs131X_1.root"]
+if False:
+    open("debug_dump_runPerformanceNTuple.py", "w").write(process.dumpPython())

@@ -72,7 +72,7 @@ process.genMu = cms.EDFilter("GenParticleSelector",
     cut = cms.string("abs(pdgId) = 13 && status == 1 && pt > 0.5 && abs(eta) < 2.7"),
 )
 
-process.genMuTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+process.genMuTable = cms.EDProducer("SimpleGenParticleFlatTableProducer",
     src = cms.InputTag("genMu"),
     cut = cms.string(""),
     name = cms.string("GenMu"),
