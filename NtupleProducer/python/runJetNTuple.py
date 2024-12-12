@@ -1,6 +1,7 @@
 import FWCore.ParameterSet.Config as cms
 from Configuration.StandardSequences.Eras import eras
 from PhysicsTools.NanoAOD.common_cff import Var, ExtVar
+import os
 
 process = cms.Process("RESP", eras.Phase2C17I13M9)
 
@@ -60,7 +61,8 @@ def addJetNTuple(trktype = "extended", nparam = 5):
     if trktype == "baseline":
         jetColl = "l1tSC4PFL1PuppiEmulator"
         jetCollCorr = "l1tSC4PFL1PuppiCorrectedEmulator"
-    process.jetntuple = cms.EDAnalyzer("JetNTuplizer",
+
+    process.outnano = cms.EDAnalyzer("JetNTuplizer",
         genJets = cms.InputTag("ak4GenJetsNoNu"),
         genParticles = cms.InputTag("genParticles"),
         scPuppiJets = cms.InputTag(jetColl),
@@ -72,7 +74,7 @@ def addJetNTuple(trktype = "extended", nparam = 5):
         electrons = cms.InputTag("l1tLayer2EG","L1CtTkElectron"),
         muons = cms.InputTag("l1tSAMuonsGmt","promptSAMuons"),
     )
-    process.endTuple = cms.EndPath(process.jetntuple)
+    process.endTuple = cms.EndPath(process.outnano)
     outName = "jetTuple_"+trktype+"_"+str(nparam)+".root"
     process.TFileService = cms.Service("TFileService", fileName = cms.string(outName))
 
@@ -117,7 +119,7 @@ def goMT(nthreads=2):
 
 if True:
     process.source.fileNames  = [
-        'file:/eos/cms/store/cmst3/group/l1tr/FastPUPPI/14_2_X/fpinputs_140X/v0/DoubleElectron_FlatPt-1To100_PU200/inputs140X_1-1.root'
+        'file:/eos/cms/store/cmst3/group/l1tr/FastPUPPI/14_2_X/fpinputs_140X/v0/DYToLL_M10To50_PU200/inputs140X_7.root'
     ] 
     goMT(4)
     trktype = "extended"
