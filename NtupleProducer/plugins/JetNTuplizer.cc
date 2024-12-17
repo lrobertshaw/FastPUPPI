@@ -65,7 +65,7 @@
 #include <TLorentzVector.h>
 #include "DataFormats/JetMatching/interface/JetFlavourInfoMatching.h"
 #include "DataFormats/L1TParticleFlow/interface/PFCandidate.h"
-#include "L1Trigger/Phase2L1ParticleFlow/interface/MultiJetId.h"
+#include "L1Trigger/Phase2L1ParticleFlow/interface/MultiJetID.h"
 #include "DataFormats/L1Trigger/interface/VertexWord.h"
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 #include "DataFormats/Math/interface/deltaPhi.h"
