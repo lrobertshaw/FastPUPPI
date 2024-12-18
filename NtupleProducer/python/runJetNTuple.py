@@ -71,6 +71,7 @@ def addJetNTuple(trktype = "extended", nparam = 5):
         genJetsFlavour = cms.InputTag("genFlavourInfo"),
         vtx = cms.InputTag("l1tVertexFinderEmulator","L1VerticesEmulation"),
         multijetIDs = cms.InputTag("l1tMultiJetProducerPuppiCorrectedEmulator", "L1PFMultiJets"),
+        bjetIDs = cms.InputTag("l1tBJetProducerPuppiCorrectedEmulator", "L1PFBJets"),
         electrons = cms.InputTag("l1tLayer2EG","L1CtTkElectron"),
         muons = cms.InputTag("l1tSAMuonsGmt","promptSAMuons"),
     )
@@ -102,8 +103,15 @@ def addMultitagging(trktype = "extended"):
     else:
         process.l1tMultiJetProducerPuppiCorrectedEmulator.jets = cms.InputTag("l1tSC4PFL1PuppiEmulator")
     process.l1tMultiJetProducerPuppiCorrectedEmulator.maxJets = cms.int32(500)
-    process.l1tMultiJetProducerPuppiCorrectedEmulator.MultiJetPath = cms.string(os.environ['CMSSW_BASE']+"/src/hls4ml-jettagger/MultiJetBaseline")
+    process.l1tMultiJetProducerPuppiCorrectedEmulator.MultiJetPath = cms.string(os.environ['CMSSW_BASE']+"/src/hls4ml-jettagger/JetTaggerNN")
     process.extraPFStuff.add(process.L1TMultiJetsTask)
+
+def addBtagging(): #extended TRK
+    process.load("L1Trigger.Phase2L1ParticleFlow.L1BJetProducer_cff")
+    process.l1tBJetProducerPuppiCorrectedEmulator.jets = cms.InputTag("l1tSC4PFL1PuppiExtendedEmulator")
+    process.l1tBJetProducerPuppiCorrectedEmulator.maxJets = cms.int32(500)
+    process.extraPFStuff.add(process.L1TBJetsTask)
+    #process.l1pfjetTable.jets.scPuppiBJet = cms.InputTag('l1tBJetProducerPuppiCorrectedEmulator')  
 
 def addGenJetFlavourTable():
     process.load("PhysicsTools.JetMCAlgos.AK4PFJetsMCFlavourInfos_cfi")
@@ -126,6 +134,7 @@ if True:
     nparam = 5
     addSeededConeJets()
     addMultitagging(trktype = trktype)
+    addBtagging()
     addNNPuppiTaus()
     addGenJetFlavourTable()
     addJetNTuple(trktype = trktype, nparam = nparam)
