@@ -65,6 +65,7 @@
 #include <TLorentzVector.h>
 #include "DataFormats/JetMatching/interface/JetFlavourInfoMatching.h"
 #include "DataFormats/L1TParticleFlow/interface/PFCandidate.h"
+#include "L1Trigger/Phase2L1ParticleFlow/interface/JetId.h"
 #include "L1Trigger/Phase2L1ParticleFlow/interface/MultiJetID.h"
 #include "DataFormats/L1Trigger/interface/VertexWord.h"
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
@@ -167,6 +168,7 @@ class JetNTuplizer : public edm::one::EDAnalyzer<edm::one::SharedResources,edm::
         edm::EDGetTokenT<std::vector<l1t::SAMuon>> muons_;
         edm::EDGetTokenT<reco::JetFlavourInfoMatchingCollection> genJetsFlavour_;
         edm::EDGetTokenT<std::vector<l1t::VertexWord>> const fVtxEmu_;
+        edm::EDGetTokenT<edm::ValueMap<float>> const bjetids_;
         edm::EDGetTokenT<edm::ValueMap<std::vector<float>>> const multijetids_;
         // const edm::InputTag pileupInfoTag_;
         TTree *tree_;
@@ -260,6 +262,7 @@ class JetNTuplizer : public edm::one::EDAnalyzer<edm::one::SharedResources,edm::
     float jet_multijetscore_muon_;
     float jet_multijetscore_regression_;
 
+    float jet_bjetscore_;
     float jet_tauscore_;
     float jet_eletkiso_;
     float jet_elepfiso_;
@@ -384,6 +387,7 @@ JetNTuplizer::JetNTuplizer(const edm::ParameterSet& iConfig) :
     muons_(consumes<std::vector<l1t::SAMuon>>(iConfig.getParameter<edm::InputTag>("muons"))), 
     genJetsFlavour_   (consumes<reco::JetFlavourInfoMatchingCollection >    (iConfig.getParameter<edm::InputTag>("genJetsFlavour"))),
     fVtxEmu_(consumes<std::vector<l1t::VertexWord>>(iConfig.getParameter<edm::InputTag>("vtx"))),
+    bjetids_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("bjetIDs"))),
     multijetids_(consumes<edm::ValueMap<std::vector<float>>>(iConfig.getParameter<edm::InputTag>("multijetIDs")))
 {
     usesResource("TFileService");
@@ -415,6 +419,8 @@ JetNTuplizer::JetNTuplizer(const edm::ParameterSet& iConfig) :
     tree_->Branch("jet_multijetscore_muon", &jet_multijetscore_muon_);
     tree_->Branch("jet_multijetscore_electron", &jet_multijetscore_electron_);
     tree_->Branch("jet_multijetscore_regression", &jet_multijetscore_regression_);
+
+    tree_->Branch("jet_bjetscore", &jet_bjetscore_);
     tree_->Branch("jet_tauscore", &jet_tauscore_);
     tree_->Branch("jet_eletkiso", &jet_eletkiso_);
     tree_->Branch("jet_elepfiso", &jet_elepfiso_);
@@ -609,6 +615,9 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     edm::Handle<edm::ValueMap<std::vector<float>>> multijetIDhandle;
     iEvent.getByToken(multijetids_, multijetIDhandle);
 
+    edm::Handle<edm::ValueMap<float>> bjetIDhandle;
+    iEvent.getByToken(bjetids_, bjetIDhandle);
+
     // gen jets
     std::vector<reco::GenJetRef> jetv_gen;  
     if(genjets.isValid()){
@@ -698,8 +707,9 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         jet_multijetscore_muon_ = jetscores[6];
         jet_multijetscore_electron_ = jetscores[7];
         jet_multijetscore_regression_ = jetscores[8];
-        
 
+        jet_bjetscore_ = (*bjetIDhandle)[jetv_l1[i]];
+        
         // match to GEN
         int   pos_matched = -1;
         float minDR = dRJetGenMatch_;
