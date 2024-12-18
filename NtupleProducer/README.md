@@ -22,7 +22,7 @@ git cms-addpkg SimTracker/TrackTriggerAssociation
 git cms-addpkg L1Trigger/Phase2L1ParticleFlow
 git cms-checkout-topic -u p2l1pfp:L1PF_14_2_X
 # and for the multijetID model
-git cms-checkout-topic -u CMS-L1T-Jet-Tagging:P2L1JetTagger_14_2_0_pre2
+git cms-checkout-topic -u CMS-L1T-Jet-Tagging:P2L1JetTagger_14_2_0_pre2-JetTaggerNN
 ```
 
 ## Jet tagging model setup
@@ -43,7 +43,7 @@ Clone jet tagger emulator and checkout specific branch link
 ```bash
 git clone https://github.com/CMS-L1T-Jet-Tagging/hls4ml-jettagger.git
 cd hls4ml-jettagger
-git checkout hls4ml-v081
+git checkout hls4ml-jettaggerNN
 make install
 cd ..
 ```
@@ -63,7 +63,7 @@ git remote add jettag https://github.com/CMS-L1T-Jet-Tagging/cmssw.git
 
 Pull changes from the CMSSW fork
 ```bash
-git pull jettag P2L1JetTagger_14_0_0_pre3
+git pull jettag P2L1JetTagger_14_2_0_pre2-JetTaggerNN
 ```
 Update the model emulation
 ```bash
@@ -73,7 +73,7 @@ git pull
 Remove old build files
 ```bash
 make clean
-cd MultiJetBaseline
+cd JetTaggerNN
 make clean
 cd ..
 ```
