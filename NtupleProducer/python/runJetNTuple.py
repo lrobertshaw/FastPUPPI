@@ -135,9 +135,7 @@ def goMT(nthreads=2):
     process.options.numberOfStreams = cms.untracked.uint32(0)
 
 if True:
-    process.source.fileNames  = [
-        'file:/eos/cms/store/cmst3/group/l1tr/FastPUPPI/14_2_X/fpinputs_140X/v0/DYToLL_M10To50_PU200/inputs140X_7.root'
-    ] 
+    process.source.fileNames  = cms.untracked.vstring(*inputMC)
     goMT(4)
     trktype = "extended"
     nparam = 5
