@@ -9,13 +9,12 @@ import sys
 from collections import namedtuple
 Jets = namedtuple("Jets", "label tag task")
 
-inputFile = str(sys.argv[-1])    # root://eoscms.cern.ch//eos/user/l/lroberts/P2_Jets/InputData/CMSSW14/TTbar/inputs131X_9.root
-nEvents = -1
+inputFile = str(sys.argv[-2])
+nEvents = int(sys.argv[-1])
 print(f"\nRunning over file: {inputFile}\nNumber of events: {nEvents}\n")
 
 # Handle wide jets
 genJets = "ak8GenJetsNoNu"
-ptCut = 0
 
 process = cms.Process("RESP", eras.Phase2C17I13M9)
 
@@ -44,10 +43,6 @@ process.load('SimCalorimetry.HGCalSimProducers.hgcalDigitizer_cfi') # needed for
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.load('RecoMET.Configuration.GenMETParticles_cff')
 process.load('RecoMET.METProducers.genMetTrue_cfi')
-
-# from RecoJets.JetProducers.ak4PFJets_cfi import ak4PFJets
-from RecoJets.JetProducers.ak4GenJets_cfi import ak4GenJets
-from RecoMET.METProducers.pfMet_cfi import pfMet
 
 from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, '141X_mcRun4_realistic_v3', '')
@@ -78,75 +73,148 @@ process.extraPFStuff.add(
     process.genMetCentralTrue
 )
 
-process.load('RecoJets.Configuration.GenJetParticles_cff')
-process.extraPFStuff.add(process.genParticlesForJetsNoNu)
-from RecoJets.JetProducers.ak8GenJets_cfi import ak8GenJets
-ak8GenJetsNoNu = ak8GenJets.clone( src = "genParticlesForJetsNoNu" )
-setattr(process, 'ak8GenJetsNoNu', ak8GenJetsNoNu)
-ak8GenJetsNoNuTask = cms.Task(ak8GenJetsNoNu)
-setattr(process, 'ak8GenJetsNoNuTask', ak8GenJetsNoNuTask)
-process.extraPFStuff.add(process.ak8GenJetsNoNuTask)
 
-# AK8 ON PUPPI CANDS
-from L1Trigger.Phase2L1ParticleFlow.l1tDeregionizerProducer_cfi import l1tDeregionizerProducer as l1tLayer2Deregionizer
-ak8PuppiJets = ak8GenJets.clone(src="l1tLayer2Deregionizer:Puppi")
-setattr(process, "ak8PuppiJets", ak8PuppiJets)
-
-ak8PuppiJetsTask = cms.Task(ak8PuppiJets) #l1tLayer2Deregionizer, 
-setattr(process, "ak8PuppiJetsTask", ak8PuppiJetsTask)
-#process.extraPFStuff.add(process.ak8PuppiJetsTask)
-
-process.ntuple = cms.EDAnalyzer("ResponseNTuplizer",
-    genJets = cms.InputTag(genJets),
-    genParticles = cms.InputTag("genParticles"),
-    isParticleGun = cms.bool(False),
-    writeExtraInfo = cms.bool(False),
-    doRandom = cms.bool(False),
-    objects = cms.PSet(
-        # -- inputs and PF --
-        RawTK  = cms.VInputTag('l1tPFTracksFromL1Tracks',),
-        # outputs
-    ),
-    copyUInts = cms.VInputTag(),
-    copyFloats = cms.VInputTag(),
-    copyVecUInts = cms.VInputTag(),
+""" Get and store gen particles """
+process.load("PhysicsTools.NanoAOD.genparticles_cff")
+from PhysicsTools.NanoAOD.simpleGenParticleFlatTableProducer_cfi import simpleGenParticleFlatTableProducer
+process.l1pfgenTable = simpleGenParticleFlatTableProducer.clone(
+    src = cms.InputTag("genParticles"),
+    name = cms.string("GenParticles"),
+    doc = cms.string("gen particles"),
+    externalVariables = cms.PSet(),
+    singleton = cms.bool(False), # the number of entries is variable
+    extension = cms.bool(False), # this is the main table
+    variables = cms.PSet(
+        pt  = Var("pt", float, precision=8),
+        phi = Var("phi", float, precision=8),
+        eta = Var("eta", float, precision=8),
+        mass = Var("mass", float, precision=8),
+        pdgId = Var("pdgId", int, doc="PDG code of the gen particle"),
+        genPartIdxMother = Var("?numberOfMothers>0?motherRef(0).key():-1", "int16", doc="index of the mother particle"),
+        vz = Var("vz", float, precision=8),
+        charge = Var("charge", int, doc="charge id"),
+        status = Var("status", int, doc="Particle status. 1=stable, 2=decayed, 3=docayed after longlived particle, 21=unstable, 22=from a longlived particle, 23=unstable and from a longlived particle"),
+        statusFlags = (Var(
+            "statusFlags().isLastCopyBeforeFSR()                  * 16384 +"
+            "statusFlags().isLastCopy()                           * 8192  +"
+            "statusFlags().isFirstCopy()                          * 4096  +"
+            "statusFlags().fromHardProcessBeforeFSR()             * 2048  +"
+            "statusFlags().isDirectHardProcessTauDecayProduct()   * 1024  +"
+            "statusFlags().isHardProcessTauDecayProduct()         * 512   +"
+            "statusFlags().fromHardProcess()                      * 256   +"
+            "statusFlags().isHardProcess()                        * 128   +"
+            "statusFlags().isDirectHadronDecayProduct()           * 64    +"
+            "statusFlags().isDirectPromptTauDecayProduct()        * 32    +"
+            "statusFlags().isDirectTauDecayProduct()              * 16    +"
+            "statusFlags().isPromptTauDecayProduct()              * 8     +"
+            "statusFlags().isTauDecayProduct()                    * 4     +"
+            "statusFlags().isDecayedLeptonHadron()                * 2     +"
+            "statusFlags().isPrompt()                             * 1      ",
+            "uint16", doc=("gen status flags stored bitwise, bits are: "
+                "0 : isPrompt, "
+                "1 : isDecayedLeptonHadron, "
+                "2 : isTauDecayProduct, "
+                "3 : isPromptTauDecayProduct, "
+                "4 : isDirectTauDecayProduct, "
+                "5 : isDirectPromptTauDecayProduct, "
+                "6 : isDirectHadronDecayProduct, "
+                "7 : isHardProcess, "
+                "8 : fromHardProcess, "
+                "9 : isHardProcessTauDecayProduct, "
+                "10 : isDirectHardProcessTauDecayProduct, "
+                "11 : fromHardProcessBeforeFSR, "
+                "12 : isFirstCopy, "
+                "13 : isLastCopy, "
+                "14 : isLastCopyBeforeFSR, ")
+            )),
+    )
 )
-process.extraPFStuff.add(process.l1tPFTracksFromL1Tracks)
 
 
 process.l1pfjetTable = cms.EDProducer("L1PFJetTableProducer",
     gen = cms.InputTag(genJets),
-    commonSel = cms.string("pt > 5 && abs(eta) < 5.0"),
+    commonSel = cms.string("pt > 0 && abs(eta) < 5.0"),
     drMax = cms.double(0.4),
     minRecoPtOverGenPt = cms.double(0.1),
     jets = cms.PSet(
         Gen = cms.InputTag(genJets),
-        Gen_sel = cms.string(f"pt > {str(ptCut)}"),   # str{ptCut}
+        Gen_sel = cms.string(f"pt > 0"),
     ),
     moreVariables = cms.PSet(
         nDau = cms.string("numberOfDaughters()"),
     ),
 )
 
+
+process.l1pfcandTable = cms.EDProducer("L1PFCandTableProducer",
+    commonSel = cms.string("pt > 0.0 && abs(eta) < 10.0"),
+    cands = cms.PSet(
+    ),
+    moreVariables = cms.PSet(
+        puppiWeight = cms.string("puppiWeight"),   # commented out as not a property of gen jets so raises error
+        pdgId = cms.string("pdgId"),
+        charge = cms.string("charge"),
+    ),
+)
+
+
+""" Import gen particles, form gen (ak8) jets, and add to task """
+from RecoJets.JetProducers.ak8GenJets_cfi import ak8GenJets
+process.load('RecoJets.Configuration.GenJetParticles_cff')
+process.extraPFStuff.add(process.genParticlesForJetsNoNu)
+# Produce AK8 jets from gen particles
+ak8GenJetsNoNu = ak8GenJets.clone( src = "genParticlesForJetsNoNu" )
+setattr(process, 'ak8GenJetsNoNu', ak8GenJetsNoNu)
+# Define the task and add it to the process
+ak8GenJetsNoNuTask = cms.Task(ak8GenJetsNoNu)
+setattr(process, 'ak8GenJetsNoNuTask', ak8GenJetsNoNuTask)
+process.extraPFStuff.add(process.ak8GenJetsNoNuTask)
+
+
+""" Form AK8 jets on PUPPI candidates """
+from L1Trigger.Phase2L1ParticleFlow.l1tDeregionizerProducer_cfi import l1tDeregionizerProducer as l1tLayer2Deregionizer
+# Produce AK8 jets from PUPPI candidates
+ak8PuppiJets = ak8GenJets.clone(src="l1tLayer2Deregionizer:Puppi")
+setattr(process, "ak8PuppiJets", ak8PuppiJets)
+# Define the task and add it to the process
+ak8PuppiJetsTask = cms.Task(ak8PuppiJets)
+setattr(process, "ak8PuppiJetsTask", ak8PuppiJetsTask)
+process.extraPFStuff.add(process.ak8PuppiJetsTask)
+# Add to jet table
+setattr(process.l1pfjetTable.jets, "ak8Puppi", cms.InputTag("ak8PuppiJets"))
+
+
+""" Save PUPPI candidates to the event """
+setattr (process.l1pfcandTable.cands, "puppi", cms.InputTag("l1tLayer2Deregionizer:Puppi"))
+
+
 """" ADD JETS TO THE JET TABLE """
-def addJets(label, tag, task, *sels):
+def addJets(label, tag, task):
     process.extraPFStuff.add(task)
     setattr(process.l1pfjetTable.jets, label, tag)
-    for sel in sels:
-        setattr(process.l1pfjetTable.jets, label+"_sel", sel)
+
+def addJetConstituents(N=128):
+    for i in range(N): # save a max of N daughters (unfortunately 2D arrays are not yet supported in the NanoAOD output module)
+        for var in "pt", "eta", "phi", "mass", "pdgId":
+            setattr(
+                process.l1pfjetTable.moreVariables,    # object
+                "dau%d_%s" % (i, var),    # attribute example dau0_pt
+                cms.string( "? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i, i, var) )    # value, example 1st iter:  "? numberOfDaughters() > 0 ? daughter(0).pt : -1"
+                )                                                                                   # failing because number of daughters is not greater than 0 for histojets - num of daughters() returning 0
+        setattr(process.l1pfjetTable.moreVariables, "dau%d_%s" % (i,"vz"), cms.string("? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i,i,"vertex.Z")))    # Not relevant for finding seeds
 
 
-gen = Jets(label="ak8Gen", tag=cms.InputTag("ak8GenJetsNoNu"), task=process.ak8GenJetsNoNuTask)
-ak8 = Jets(label="ak8Puppi", tag=cms.InputTag("ak8PuppiJets"), task=process.ak8PuppiJetsTask)
 sc8Sim = Jets(label="sc8PuppiSim", tag=cms.InputTag("l1tSC8PFL1Puppi"), task=process.L1TPFJetsTask)    # Should have jet mass
 sc8Emu = Jets(label="sc8PuppiEmu", tag=cms.InputTag("l1tSC8PFL1PuppiEmulator"), task=process.L1TPFJetsEmulationTask)    # wont have jet mass
 
-addJets(*ak8)    # AK8 jets for baseline
 addJets(*sc8Sim)    # seeded cone jets
 addJets(*sc8Emu)
+addJetConstituents(N=32)
 
 
-process.p = cms.Path( process.ntuple + process.l1pfjetTable )
+""" Handle output of data """
+# process.p = cms.Path( process.ntuple + process.l1pfjetTable )
+process.p = cms.Path( process.l1pfjetTable + process.l1pfcandTable + process.l1pfgenTable )
 process.p.associate(process.extraPFStuff)
 process.TFileService = cms.Service("TFileService", fileName = cms.string("perfTuple.root"))
 
