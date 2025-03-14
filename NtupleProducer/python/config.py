@@ -7,15 +7,12 @@ from PhysicsTools.NanoAOD.common_cff import Var, ExtVar
 
 import sys
 from collections import namedtuple
-Jets = namedtuple("Jets", "label tag task")
+Jets = namedtuple("Jets", "label tag task fatJet")
 
-inputFile = str(sys.argv[-1])    # root://eoscms.cern.ch//eos/user/l/lroberts/P2_Jets/InputData/CMSSW14/TTbar/inputs131X_9.root
-nEvents = 10
+inputFile = str(sys.argv[-2])
+nEvents = int(sys.argv[-1])
 print(f"\nRunning over file: {inputFile}\nNumber of events: {nEvents}\n")
 
-# Handle wide jets
-genJets = "ak8GenJetsNoNu"
-ptCut = 0
 
 process = cms.Process("RESP", eras.Phase2C17I13M9)
 
@@ -44,10 +41,6 @@ process.load('SimCalorimetry.HGCalSimProducers.hgcalDigitizer_cfi') # needed for
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.load('RecoMET.Configuration.GenMETParticles_cff')
 process.load('RecoMET.METProducers.genMetTrue_cfi')
-
-# from RecoJets.JetProducers.ak4PFJets_cfi import ak4PFJets
-from RecoJets.JetProducers.ak4GenJets_cfi import ak4GenJets
-from RecoMET.METProducers.pfMet_cfi import pfMet
 
 from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, '141X_mcRun4_realistic_v3', '')
@@ -78,72 +71,15 @@ process.extraPFStuff.add(
     process.genMetCentralTrue
 )
 
-process.load('RecoJets.Configuration.GenJetParticles_cff')
-process.extraPFStuff.add(process.genParticlesForJetsNoNu)
 
-from RecoJets.JetProducers.ak8GenJets_cfi import ak8GenJets
-ak8GenJetsNoNu = ak8GenJets.clone( src = "genParticlesForJetsNoNu" )
-setattr(process, 'ak8GenJetsNoNu', ak8GenJetsNoNu)
-
-ak8GenJetsNoNuTask = cms.Task(ak8GenJetsNoNu)
-setattr(process, 'ak8GenJetsNoNuTask', ak8GenJetsNoNuTask)
-process.extraPFStuff.add(process.ak8GenJetsNoNuTask)
-
-ak8GenConstits = cms.EDProducer("GenJetConstituentSelector",
-                                        src = cms.InputTag("ak8GenJetsNoNu"),
-                                        cut = cms.string("pt > 5.0")
-                                        )
-setattr(process, 'ak8GenConstits', ak8GenConstits)
-process.extraPFStuff.add(process.ak8GenConstits)
-
-ak8GenConstitsTask = cms.Task(process.ak8GenConstits)
-setattr(process, 'ak8GenConstitsTask', ak8GenConstitsTask)    
-process.extraPFStuff.add(process.ak8GenConstitsTask)
-
-# AK8 ON PUPPI CANDS
-from L1Trigger.Phase2L1ParticleFlow.l1tDeregionizerProducer_cfi import l1tDeregionizerProducer as l1tLayer2Deregionizer
-ak8PuppiJets = ak8GenJets.clone(src="l1tLayer2Deregionizer:Puppi")
-setattr(process, "ak8PuppiJets", ak8PuppiJets)
-
-ak8PuppiJetsTask = cms.Task(ak8PuppiJets) #l1tLayer2Deregionizer, 
-setattr(process, "ak8PuppiJetsTask", ak8PuppiJetsTask)
-#process.extraPFStuff.add(process.ak8PuppiJetsTask)
-
-process.ntuple = cms.EDAnalyzer("ResponseNTuplizer",
-    genJets = cms.InputTag(genJets),
-    genParticles = cms.InputTag("genParticles"),
-    isParticleGun = cms.bool(False),
-    writeExtraInfo = cms.bool(False),
-    doRandom = cms.bool(False),
-    objects = cms.PSet(
-        # -- inputs and PF --
-        RawTK  = cms.VInputTag('l1tPFTracksFromL1Tracks',),
-        # outputs
-    ),
-    copyUInts = cms.VInputTag(),
-    copyFloats = cms.VInputTag(),
-    copyVecUInts = cms.VInputTag(),
-)
-process.extraPFStuff.add(process.l1tPFTracksFromL1Tracks)
-
-process.l1pfcandTable = cms.EDProducer("L1PFCandTableProducer",
-    commonSel = cms.string("pt > 0.0 && abs(eta) < 10.0"),
-    cands = cms.PSet(
-    ),
-    moreVariables = cms.PSet(
-        # puppiWeight = cms.string("puppiWeight"),   # commented out as not a property of gen jets so raises error
-        pdgId = cms.string("pdgId"),
-        charge = cms.string("charge"),
-    ),
-)
-
-""" Add the candidate table to the process to store candidates """
-# process.load("PhysicsTools.NanoAOD.genparticles_cff")
-from PhysicsTools.NanoAOD.simpleCandidateFlatTableProducer_cfi import simpleCandidateFlatTableProducer
-process.l1pfgenTable = simpleCandidateFlatTableProducer.clone(
+""" Get and store gen particles """
+process.load("PhysicsTools.NanoAOD.genparticles_cff")
+from PhysicsTools.NanoAOD.simpleGenParticleFlatTableProducer_cfi import simpleGenParticleFlatTableProducer
+process.l1pfgenTable = simpleGenParticleFlatTableProducer.clone(
     src = cms.InputTag("genParticles"),
     name = cms.string("GenParticles"),
     doc = cms.string("gen particles"),
+    externalVariables = cms.PSet(),
     singleton = cms.bool(False), # the number of entries is variable
     extension = cms.bool(False), # this is the main table
     variables = cms.PSet(
@@ -192,80 +128,149 @@ process.l1pfgenTable = simpleCandidateFlatTableProducer.clone(
     )
 )
 
-process.l1pfjetTable = cms.EDProducer("L1PFJetTableProducer",
-    gen = cms.InputTag(genJets),
-    commonSel = cms.string("pt > 5 && abs(eta) < 5.0"),
-    drMax = cms.double(0.4),
+
+process.l1pfJetTable = cms.EDProducer("L1PFJetTableProducer",
+    gen = cms.InputTag("ak4GenJetsNoNu"),
+    commonSel = cms.string("pt > 0 && abs(eta) < 5.0"),
+    drMax = cms.double(0.2),
     minRecoPtOverGenPt = cms.double(0.1),
     jets = cms.PSet(
-        Gen = cms.InputTag(genJets),
-        Gen_sel = cms.string(f"pt > {str(ptCut)}"),   # str{ptCut}
+        # Gen = cms.InputTag("ak4GenJetsNoNu"),
+        Gen_sel = cms.string(f"pt > 0"),
     ),
     moreVariables = cms.PSet(
         nDau = cms.string("numberOfDaughters()"),
     ),
 )
 
+
+process.l1pfFatJetTable = cms.EDProducer("L1PFJetTableProducer",
+    gen = cms.InputTag("ak8GenJetsNoNu"),
+    commonSel = cms.string("pt > 0 && abs(eta) < 5.0"),
+    drMax = cms.double(0.4),
+    minRecoPtOverGenPt = cms.double(0.1),
+    jets = cms.PSet(
+        # Gen = cms.InputTag("ak8GenJetsNoNu"),
+        Gen_sel = cms.string(f"pt > 0"),
+    ),
+    moreVariables = cms.PSet(
+        nDau = cms.string("numberOfDaughters()"),
+    ),
+)
+
+
+process.l1pfcandTable = cms.EDProducer("L1PFCandTableProducer",
+    commonSel = cms.string("pt > 0.0 && abs(eta) < 10.0"),
+    cands = cms.PSet(
+    ),
+    moreVariables = cms.PSet(
+        puppiWeight = cms.string("puppiWeight"),   # commented out as not a property of gen jets so raises error
+        pdgId = cms.string("pdgId"),
+        charge = cms.string("charge"),
+    ),
+)
+
+
+""" Import gen particles, form gen (ak8) jets, and add to task """
+from RecoJets.JetProducers.ak8GenJets_cfi import ak8GenJets
+process.load('RecoJets.Configuration.GenJetParticles_cff')
+process.extraPFStuff.add(process.genParticlesForJetsNoNu)
+
+# Produce AK8 jets from gen particles
+ak8GenJetsNoNu = ak8GenJets.clone( src = "genParticlesForJetsNoNu" )
+setattr(process, 'ak8GenJetsNoNu', ak8GenJetsNoNu)
+# Define the task and add it to the process
+ak8GenJetsNoNuTask = cms.Task(ak8GenJetsNoNu)
+setattr(process, 'ak8GenJetsNoNuTask', ak8GenJetsNoNuTask)
+process.extraPFStuff.add(process.ak8GenJetsNoNuTask)
+setattr(process.l1pfJetTable.jets, "ak8Gen", cms.InputTag("ak8GenJetsNoNu"))
+
+from RecoJets.JetProducers.ak4GenJets_cfi import ak4GenJets
+ak4GenJetsNoNu = ak4GenJets.clone(src="genParticlesForJetsNoNu")
+setattr(process, "ak4GenJetsNoNu", ak4GenJetsNoNu)
+ak4GenJetsNoNuTask = cms.Task(ak4GenJetsNoNu)
+setattr(process, "ak4GenJetsNoNuTask", ak4GenJetsNoNuTask)
+process.extraPFStuff.add(process.ak4GenJetsNoNuTask)
+setattr(process.l1pfJetTable.jets, "ak4Gen", cms.InputTag("ak4GenJetsNoNu"))
+
+
+""" Form AK8 jets on PUPPI candidates """
+from L1Trigger.Phase2L1ParticleFlow.l1tDeregionizerProducer_cfi import l1tDeregionizerProducer as l1tLayer2Deregionizer
+# Produce AK8 jets from PUPPI candidates
+ak8PuppiJets = ak8GenJets.clone(src="l1tLayer2Deregionizer:Puppi")
+setattr(process, "ak8PuppiJets", ak8PuppiJets)
+# Define the task and add it to the process
+ak8PuppiJetsTask = cms.Task(ak8PuppiJets)
+setattr(process, "ak8PuppiJetsTask", ak8PuppiJetsTask)
+process.extraPFStuff.add(process.ak8PuppiJetsTask)
+# Add to jet table
+setattr(process.l1pfFatJetTable.jets, "ak8Puppi", cms.InputTag("ak8PuppiJets"))
+
+# Produce AK4 jets from PUPPI candidates
+from RecoJets.JetProducers.ak4GenJets_cfi import ak4GenJets
+ak4PuppiJets = ak4GenJets.clone(src="l1tLayer2Deregionizer:Puppi")
+setattr(process, "ak4PuppiJets", ak4PuppiJets)
+ak4PuppiJetsTask = cms.Task(ak4PuppiJets)
+setattr(process, "ak4PuppiJetsTask", ak4PuppiJetsTask)
+process.extraPFStuff.add(process.ak4PuppiJetsTask)
+setattr(process.l1pfJetTable.jets, "ak4Puppi", cms.InputTag("ak4PuppiJets"))
+
+
+""" Save PUPPI candidates to the event """
+setattr (process.l1pfcandTable.cands, "puppi", cms.InputTag("l1tLayer2Deregionizer:Puppi"))
+
+
 """" ADD JETS TO THE JET TABLE """
-def addJets(label, tag, task, *sels):
+def addJets(label, tag, task, fatJet=False):
     process.extraPFStuff.add(task)
-    setattr(process.l1pfjetTable.jets, label, tag)
-    for sel in sels:
-        setattr(process.l1pfjetTable.jets, label+"_sel", sel)
+    setattr(process.l1pfFatJetTable.jets, label, tag) if fatJet else setattr(process.l1pfJetTable.jets, label, tag)
 
-""" SAVE JET CONSTITUENTS UP TO 128"""
-def addJetConstituents(N=128):
+def addJetConstituents(fatJet=False, N=128):
     for i in range(N): # save a max of N daughters (unfortunately 2D arrays are not yet supported in the NanoAOD output module)
-        for var in "pt", "eta", "phi", "mass", "pdgId":
-            setattr(
-                process.l1pfjetTable.moreVariables,    # object
-                "dau%d_%s" % (i, var),    # attribute example dau0_pt
-                cms.string( "? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i, i, var) )    # value, example 1st iter:  "? numberOfDaughters() > 0 ? daughter(0).pt : -1"
-                )                                                                                   # failing because number of daughters is not greater than 0 for histojets - num of daughters() returning 0
-        setattr(process.l1pfjetTable.moreVariables, "dau%d_%s" % (i,"vz"), cms.string("? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i,i,"vertex.Z")))    # Not relevant for finding seeds
-
-""" SAVE CANDIDATES """
-def saveCands(label, tag):
-    setattr (process.l1pfcandTable.cands, label, cms.InputTag(tag))
-
-############################################################################################
-""" GENERATOR JETS """
-gen = Jets(label="ak8Gen", tag=cms.InputTag("ak8GenJetsNoNu"), task=process.ak8GenJetsNoNuTask)
-
-""" Anti-kT"""
-ak8 = Jets(label="ak8Puppi", tag=cms.InputTag("ak8PuppiJets"), task=process.ak8PuppiJetsTask)
-
-""" SEEDED CONE 8"""
-sc8Sim = Jets(label="sc8PuppiSim", tag=cms.InputTag("l1tSC8PFL1Puppi"), task=process.L1TPFJetsTask)    # Should have jet mass
-sc8Emu = Jets(label="sc8PuppiEmu", tag=cms.InputTag("l1tSC8PFL1PuppiEmulator"), task=process.L1TPFJetsEmulationTask)    # wont have jet mass
+        if fatJet:
+            for var in "pt", "eta", "phi", "mass", "pdgId":
+                setattr(process.l1pfFatJetTable.moreVariables, "dau%d_%s" % (i, var),    # attribute example dau0_pt
+                    cms.string( "? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i, i, var) )    # value, example 1st iter:  "? numberOfDaughters() > 0 ? daughter(0).pt : -1"
+                    )                                                                                   # failing because number of daughters is not greater than 0 for histojets - num of daughters() returning 0
+            setattr(process.l1pfFatJetTable.moreVariables, "dau%d_%s" % (i,"vz"), cms.string("? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i,i,"vertex.Z")))    # Not relevant for finding seeds
+        else:
+            for var in "pt", "eta", "phi", "mass", "pdgId":
+                setattr(process.l1pfJetTable.moreVariables, "dau%d_%s" % (i, var),    # attribute example dau0_pt
+                    cms.string( "? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i, i, var) )    # value, example 1st iter:  "? numberOfDaughters() > 0 ? daughter(0).pt : -1"
+                    )                                                                                   # failing because number of daughters is not greater than 0 for histojets - num of daughters() returning 0
+            setattr(process.l1pfJetTable.moreVariables, "dau%d_%s" % (i,"vz"), cms.string("? numberOfDaughters() > %d ? daughter(%d).%s : -1"  % (i,i,"vertex.Z")))    # Not relevant for finding seeds
 
 
-addJets(*ak8)    # AK8 jets for baseline
+sc4Sim = Jets(label="sc4PuppiSim", tag=cms.InputTag("l1tSC4PFL1Puppi"), task=process.L1TPFJetsTask, fatJet=False)    # Should have False
+sc4Emu = Jets(label="sc4PuppiEmu", tag=cms.InputTag("l1tSC4PFL1PuppiEmulator"), task=process.L1TPFJetsEmulationTask, fatJet=False)    # wont have False
+sc4SimCorr = Jets(label="sc4PuppiSimCorr", tag=cms.InputTag("l1tSC4PFL1PuppiCorrected"), task=process.L1TPFJetsTask, fatJet=False)    # Should have jet mass
+sc4EmuCorr = Jets(label="sc4PuppiEmuCorr", tag=cms.InputTag("l1tSC4PFL1PuppiCorrectedEmulator"), task=process.L1TPFJetsEmulationTask, fatJet=False)    # wont have jet mass
+
+sc8Sim = Jets(label="sc8PuppiSim", tag=cms.InputTag("l1tSC8PFL1Puppi"), task=process.L1TPFJetsTask, fatJet=True)    # Should have jet mass
+sc8Emu = Jets(label="sc8PuppiEmu", tag=cms.InputTag("l1tSC8PFL1PuppiEmulator"), task=process.L1TPFJetsEmulationTask, fatJet=True)    # wont have jet mass
+sc8SimCorr = Jets(label="sc8PuppiSimCorr", tag=cms.InputTag("l1tSC8PFL1PuppiCorrected"), task=process.L1TPFJetsTask, fatJet=True)    # Should have jet mass
+sc8EmuCorr = Jets(label="sc8PuppiEmuCorr", tag=cms.InputTag("l1tSC8PFL1PuppiCorrectedEmulator"), task=process.L1TPFJetsEmulationTask, fatJet=True)    # wont have jet mass
+
+
+addJets(*sc4Sim)    # seeded cone jets
+addJets(*sc4Emu)
+addJets(*sc4SimCorr)
+addJets(*sc4EmuCorr)
+
 addJets(*sc8Sim)    # seeded cone jets
 addJets(*sc8Emu)
+addJets(*sc8SimCorr)
+addJets(*sc8EmuCorr)
 
-# addJetConstituents(N=128)  # 128 by default as max regioniser output
-# saveCands("PUPPI", "l1tLayer2Deregionizer:Puppi")
-# saveCands(label="GenParticles", tag = "genParticles")    # Include genParticles by default
+addJetConstituents(fatJet=False, N=32)
+addJetConstituents(fatJet=True,  N=32)
 
-# setattr(process.l1pfcandTable.cands, "GenJetConstits", cms.InputTag("ak8GenConstits", "constituents"))
-#############################################################################################
 
-process.p = cms.Path(
-        process.ntuple + #process.content +
-        process.l1pfjetTable +
-        process.l1pfcandTable +
-        process.l1pfgenTable +
-        process.ak8GenConstits
-        )
+""" Handle output of data """
+# process.p = cms.Path( process.ntuple + process.l1pfjetTable )
+process.p = cms.Path( process.l1pfJetTable + process.l1pfFatJetTable + process.l1pfcandTable + process.l1pfgenTable )
 process.p.associate(process.extraPFStuff)
 process.TFileService = cms.Service("TFileService", fileName = cms.string("perfTuple.root"))
-
-# process.out = cms.OutputModule("PoolOutputModule",
-#                               fileName = cms.untracked.string("debugPF.root"),
-#                               SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring("p"))
-#                           )
-# process.end = cms.EndPath(process.out)
 
 process.outnano = cms.OutputModule("NanoAODOutputModule",
     fileName = cms.untracked.string("perfNano.root"),
@@ -275,33 +280,3 @@ process.outnano = cms.OutputModule("NanoAODOutputModule",
     compressionAlgorithm = cms.untracked.string("ZLIB"),
 )
 process.end = cms.EndPath(process.outnano)
-
-if False:
-    """ NOTE: useExternalSeeds FLAG DOESN'T WORK WITH SIM JETS, HW FLAG MUST BE TRUE """
-    def wideJetStudies():
-        addJets(*ak8)
-        addJets(*sc8Emu)
-        addJets(*hsc8Emu)
-
-    def jetMassStudies():
-        addJets("SC8Mass30Cut", sc8Sim.tag, sc8Sim.task, cms.string("mass > 30"))
-        addJets("SC8Mass10Cut", sc8Sim.tag, sc8Sim.task, cms.string("mass > 10"))
-        addJets("SC8MassNoCut", sc8Sim.tag, sc8Sim.task                         )
-        
-        addJets("AK8Mass30Cut", ak8.tag,    ak8.task,    cms.string("mass > 30"))
-        addJets("AK8Mass10Cut", ak8.tag,    ak8.task,    cms.string("mass > 10"))
-        addJets("AK8MassNoCut", ak8.tag,    ak8.task                            )
-
-        addJets(*gen)
-
-        addJetConstituents(N=1)  # 128 by default as max regioniser output
-        saveCands("PUPPI", "l1tLayer2Deregionizer:Puppi")
-        saveCands(label="GenParticles", tag = "genParticles")    # Include genParticles by default
-
-    def hscDoubleBinSize():
-        addJets(*ak8)    # AK8 jets for baseline
-        addJets(*sc8Sim)    # seeded cone jets
-        addJets(*hsc8SimDoubleBinSize)    # hsc jets with 9x9 mask, but double bin sizes
-        addJets(*hsc8SimDoubleBinSize3x3)
-        addJets(*hsc8SimDoubleBinSize5x5)
-
