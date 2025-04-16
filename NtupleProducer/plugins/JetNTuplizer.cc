@@ -173,7 +173,7 @@ class JetNTuplizer : public edm::one::EDAnalyzer<edm::one::SharedResources,edm::
         // const edm::InputTag pileupInfoTag_;
         TTree *tree_;
         uint32_t run_, lumi_; uint64_t event_;
-         //   float bZ_;
+        //    float bZ_;
 
         // float dRJetGenMatch_ = 0.2;
         float dRJetGenMatch_ = 0.4;
@@ -369,12 +369,6 @@ class JetNTuplizer : public edm::one::EDAnalyzer<edm::one::SharedResources,edm::
     std::vector<float> jet_pfcand_cluster_emet;
     std::vector<float> jet_pfcand_cluster_egvspion;
     std::vector<float> jet_pfcand_cluster_egvspu;
-
-
-
-
-
-       
 };
 
 JetNTuplizer::JetNTuplizer(const edm::ParameterSet& iConfig) :
@@ -697,18 +691,18 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         // jet_py_ = jetv_l1[i]->py();
         // jet_pz_ = jetv_l1[i]->pz();
 
-        std::vector<float> jetscores = (*multijetIDhandle)[jetv_l1[i]];
-        jet_multijetscore_light_ = jetscores[2];
-        jet_multijetscore_b_ = jetscores[0];
-        jet_multijetscore_taup_ = jetscores[4];
-        jet_multijetscore_taum_ = jetscores[5];
-        jet_multijetscore_gluon_ = jetscores[3];
-        jet_multijetscore_charm_ = jetscores[1];
-        jet_multijetscore_muon_ = jetscores[6];
-        jet_multijetscore_electron_ = jetscores[7];
-        jet_multijetscore_regression_ = jetscores[8];
+        // std::vector<float> jetscores = (*multijetIDhandle)[jetv_l1[i]];
+        // jet_multijetscore_light_ = jetscores[2];
+        // jet_multijetscore_b_ = jetscores[0];
+        // jet_multijetscore_taup_ = jetscores[4];
+        // jet_multijetscore_taum_ = jetscores[5];
+        // jet_multijetscore_gluon_ = jetscores[3];
+        // jet_multijetscore_charm_ = jetscores[1];
+        // jet_multijetscore_muon_ = jetscores[6];
+        // jet_multijetscore_electron_ = jetscores[7];
+        // jet_multijetscore_regression_ = jetscores[8];
 
-        jet_bjetscore_ = (*bjetIDhandle)[jetv_l1[i]];
+        // jet_bjetscore_ = (*bjetIDhandle)[jetv_l1[i]];
         
         // match to GEN
         int   pos_matched = -1;
@@ -727,8 +721,8 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             jet_genmatch_phi_ = jetv_gen[pos_matched]->phi();
             jet_genmatch_mass_ = jetv_gen[pos_matched]->mass();
             jet_genmatch_dR_ = minDR;
-            jet_genmatch_hflav_ = (*genJetsFlavour)[edm::RefToBase<reco::Jet>(jetv_gen[pos_matched])].getHadronFlavour();
-            jet_genmatch_pflav_ = (*genJetsFlavour)[edm::RefToBase<reco::Jet>(jetv_gen[pos_matched])].getPartonFlavour();      
+            // jet_genmatch_hflav_ = (*genJetsFlavour)[edm::RefToBase<reco::Jet>(jetv_gen[pos_matched])].getHadronFlavour();
+            // jet_genmatch_pflav_ = (*genJetsFlavour)[edm::RefToBase<reco::Jet>(jetv_gen[pos_matched])].getPartonFlavour();      
         }
         else{
             jet_genmatch_pt_ = 0;
@@ -736,8 +730,8 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             jet_genmatch_phi_ = 0;
             jet_genmatch_mass_ = 0;
             jet_genmatch_dR_ = 0;
-            jet_genmatch_hflav_ = 0;
-            jet_genmatch_pflav_ = 0;
+            // jet_genmatch_hflav_ = 0;
+            // jet_genmatch_pflav_ = 0;
         }
 
 
@@ -1204,9 +1198,6 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 }
 
 
-
-
-
 void JetNTuplizer::fill_genParticles(const edm::Event& iEvent)
 {
     gToBB_.clear();
@@ -1464,15 +1455,6 @@ void JetNTuplizer::fill_genParticles(const edm::Event& iEvent)
         }       
     }
 }
-
-
-
-
-
-
-
-
-
 
 //define this as a plug-in
 #include "FWCore/Framework/interface/MakerMacros.h"
