@@ -153,15 +153,56 @@ monitorPerf("L1TK",   "l1tLayer1:TK")
 monitorPerf("L1PF",    "l1tLayer1:PF")
 monitorPerf("L1Puppi", "l1tLayer1:Puppi")
 
+""" Import gen particles, form gen (ak8) jets, and add to task """
+from RecoJets.JetProducers.ak8GenJets_cfi import ak8GenJets
+process.load('RecoJets.Configuration.GenJetParticles_cff')
+process.extraPFStuff.add(process.genParticlesForJetsNoNu)
+
+# Produce AK8 jets from gen particles
+ak8GenJetsNoNu = ak8GenJets.clone( src = "genParticlesForJetsNoNu" )
+setattr(process, 'ak8GenJetsNoNu', ak8GenJetsNoNu)
+# Define the task and add it to the process
+ak8GenJetsNoNuTask = cms.Task(ak8GenJetsNoNu)
+setattr(process, 'ak8GenJetsNoNuTask', ak8GenJetsNoNuTask)
+process.extraPFStuff.add(process.ak8GenJetsNoNuTask)
+setattr(process.l1pfjetTable.jets, "ak8Gen", cms.InputTag("ak8GenJetsNoNu"))
+
+process.l1pfFatJetTable = cms.EDProducer("L1PFJetTableProducer",
+    gen = cms.InputTag("ak8GenJetsNoNu"),
+    commonSel = cms.string("pt > 0 && abs(eta) < 5.0"),
+    drMax = cms.double(0.4),
+    minRecoPtOverGenPt = cms.double(0.1),
+    jets = cms.PSet(
+        # Gen = cms.InputTag("ak8GenJetsNoNu"),
+        Gen_sel = cms.string(f"pt > 0"),
+    ),
+    moreVariables = cms.PSet(
+        nDau = cms.string("numberOfDaughters()"),
+    ),
+)
+
 # to check available tags:
 #process.content = cms.EDAnalyzer("EventContentAnalyzer")
+#--------------------------------------------------------------------------------------------
+process.extraPFStuff.add(process.HSC4JetsSeedReductionTask)
+process.l1pfFatJetTable.jets.HSC4SeedReduced = cms.InputTag('histoseededcone')
+
+process.extraPFStuff.add(process.HSC8regularTask)
+process.l1pfFatJetTable.jets.HSC8 = cms.InputTag('l1tHSC8PFL1PuppiEmuTrimmed')
+
+process.extraPFStuff.add(process.HSC4NoSRTask)
+process.l1pfFatJetTable.jets.HSC4NoSR = cms.InputTag('histoseededconeNoSR')
+
+process.extraPFStuff.add(process.SC8Task)
+process.l1pfFatJetTable.jets.SC8 = cms.InputTag('seededcone')
+
 process.p = cms.Path(
         process.ntuple + #process.content +
         process.l1pfjetTable + 
-        process.l1pfmetTable + process.l1pfmetCentralTable
+        process.l1pfmetTable + process.l1pfmetCentralTable + process.l1pfFatJetTable
         )
 process.p.associate(process.extraPFStuff)
-process.TFileService = cms.Service("TFileService", fileName = cms.string("perfTuple.root"))
+process.TFileService = cms.Service("TFileService", fileName = cms.string("perfTuple_minbias.root"))
 
 # for full debug:
 #process.out = cms.OutputModule("PoolOutputModule",
@@ -171,7 +212,7 @@ process.TFileService = cms.Service("TFileService", fileName = cms.string("perfTu
 #process.end = cms.EndPath(process.out)
 
 process.outnano = cms.OutputModule("NanoAODOutputModule",
-    fileName = cms.untracked.string("perfNano.root"),
+    fileName = cms.untracked.string("perfNano_minbias.root"),
     SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring('p')),
     outputCommands = cms.untracked.vstring("drop *", "keep nanoaodFlatTable_*Table_*_*"),
     compressionLevel = cms.untracked.int32(4),

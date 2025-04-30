@@ -180,6 +180,12 @@ whats = WHATS + [
         ("Puppi",     "L1OldPuppi",       ROOT.kBlue+1, 21, 1.5),
         ("Puppi4MET", "L1OldPuppiForMET", ROOT.kAzure+10, 21, 1.5),
     ]),
+    ('test_1',[
+        ("HSC4SR",    "HSC4SeedReduced$",       ROOT.kBlue+2, 20, 1.7),
+        ("HSC4NoSR",    "HSC4NoSR$",       ROOT.kAzure+2, 20, 1.5),
+        ("HSC8",    "HSC8$",       ROOT.kRed+2, 20, 1),
+        ("SC8",    "SC8$",       ROOT.kGreen+2, 20, 1),
+    ]),
     ('newcomp',[
         ("Calo",      "L1Calo",        ROOT.kViolet+2, 20, 1.5),
         ("TK 5s",     "L1TKV5",        ROOT.kRed+1, 24, 1.5),
