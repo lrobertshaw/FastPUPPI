@@ -1,6 +1,15 @@
+import os
+if os.path.exists("perfTuple.root"): os.remove("perfTuple.root")
+
 import FWCore.ParameterSet.Config as cms
 from Configuration.StandardSequences.Eras import eras
 from PhysicsTools.NanoAOD.common_cff import Var, ExtVar 
+
+import sys
+inputFile = str(sys.argv[-2])
+nEvents = int(sys.argv[-1])
+print(f"\nRunning over file: {inputFile}\nNumber of events: {nEvents}\n")
+
 
 process = cms.Process("RESP", eras.Phase2C17I13M9)
 
@@ -8,11 +17,11 @@ process.load('Configuration.StandardSequences.Services_cff')
 process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
 process.options   = cms.untracked.PSet( wantSummary = cms.untracked.bool(True), allowUnscheduled = cms.untracked.bool(False) )
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(20))
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(nEvents))
 process.MessageLogger.cerr.FwkReport.reportEvery = 1
 
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('file:/dice/users/wq22321/dominic/data/inputs131X_53.root'),
+    fileNames = cms.untracked.vstring('file:{}'.format(inputFile)),
     inputCommands = cms.untracked.vstring("keep *", 
             "drop l1tPFClusters_*_*_*",
             "drop l1tPFTracks_*_*_*",
@@ -202,7 +211,7 @@ process.p = cms.Path(
         process.l1pfmetTable + process.l1pfmetCentralTable + process.l1pfFatJetTable
         )
 process.p.associate(process.extraPFStuff)
-process.TFileService = cms.Service("TFileService", fileName = cms.string("perfTuple_minbias.root"))
+process.TFileService = cms.Service("TFileService", fileName = cms.string("perfTuple.root"))
 
 # for full debug:
 #process.out = cms.OutputModule("PoolOutputModule",
@@ -212,7 +221,7 @@ process.TFileService = cms.Service("TFileService", fileName = cms.string("perfTu
 #process.end = cms.EndPath(process.out)
 
 process.outnano = cms.OutputModule("NanoAODOutputModule",
-    fileName = cms.untracked.string("perfNano_minbias.root"),
+    fileName = cms.untracked.string("perfNano.root"),
     SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring('p')),
     outputCommands = cms.untracked.vstring("drop *", "keep nanoaodFlatTable_*Table_*_*"),
     compressionLevel = cms.untracked.int32(4),
