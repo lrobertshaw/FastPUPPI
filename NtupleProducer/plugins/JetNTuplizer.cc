@@ -616,8 +616,8 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     std::vector<reco::GenJetRef> jetv_gen;  
     if(genjets.isValid()){
         for (auto jets_iter = genjets->begin(); jets_iter != genjets->end(); ++jets_iter) {                                                                                                   
-        reco::GenJetRef jref (genjets, jets_iter - genjets->begin());                                                                                                                      
-        jetv_gen.push_back(jref);                                                                                                                                                              
+            reco::GenJetRef jref (genjets, jets_iter - genjets->begin());                                                                                                                      
+            jetv_gen.push_back(jref);                                                                                                                                                              
         }
         sort(jetv_gen.begin(), jetv_gen.end(), genJetRefSorter);
     }
@@ -783,7 +783,7 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             }
         }
 
-        // some basic selection crityeria
+        // some basic selection criteria
         jet_reject_  = false;
         // exclude, when a jet is matched with a lepton, those for which the matched lepton is below the chosen pt threshold
         // Jet id applied only to jets not overlapping with gen-leptons
@@ -1242,7 +1242,7 @@ void JetNTuplizer::fill_genParticles(const edm::Event& iEvent)
 
         for (const reco::Candidate &genC : *genParticles){
             const reco::GenParticle &gen = static_cast< const reco::GenParticle &>(genC);
-            if((abs(gen.pdgId())>500&&abs(gen.pdgId())<600)||(abs(gen.pdgId())>5000&&abs(gen.pdgId())<6000)){
+            if( (abs(gen.pdgId()) > 500 && abs(gen.pdgId()) < 600) || (abs(gen.pdgId()) > 5000 && abs(gen.pdgId()) < 6000) ){
                 Bhadron_.push_back(gen);
                 if(gen.numberOfDaughters()>0){
                     if( (abs(gen.daughter(0)->pdgId())>500&&abs(gen.daughter(0)->pdgId())<600)||(abs(gen.daughter(0)->pdgId())>5000&&abs(gen.daughter(0)->pdgId())<6000)){
@@ -1304,10 +1304,8 @@ void JetNTuplizer::fill_genParticles(const edm::Event& iEvent)
         unsigned int igen = 0;
         for (auto gens_iter = genParticles->begin(); gens_iter != genParticles->end(); ++gens_iter) {      
 
-            if((abs(gens_iter->pdgId()) == 25 or abs(gens_iter->pdgId()) == 24 or abs(gens_iter->pdgId()) == 23) and
-            gens_iter->isLastCopy() and 
-            gens_iter->statusFlags().fromHardProcess()){ 
-
+            if( (abs(gens_iter->pdgId()) == 25 or abs(gens_iter->pdgId()) == 24 or abs(gens_iter->pdgId()) == 23) and gens_iter->isLastCopy() and gens_iter->statusFlags().fromHardProcess() )
+            {
                 gen_particle_pt.push_back(gens_iter->pt());
                 gen_particle_eta.push_back(gens_iter->eta());
                 gen_particle_phi.push_back(gens_iter->phi());

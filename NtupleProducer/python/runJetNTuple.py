@@ -5,17 +5,22 @@ import os
 
 if os.path.exists("jetTuple_extended_5.root"): os.remove("jetTuple_extended_5.root")
 
+import sys
+inputFile = str(sys.argv[-2])
+nEvents = int(sys.argv[-1])
+print(f"\nRunning over file: {inputFile}\nNumber of events: {nEvents}\n")
+
 process = cms.Process("RESP", eras.Phase2C17I13M9)
 
 process.load('Configuration.StandardSequences.Services_cff')
 process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
 process.options   = cms.untracked.PSet( wantSummary = cms.untracked.bool(False), allowUnscheduled = cms.untracked.bool(False) )
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10))
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(nEvents))
 process.MessageLogger.cerr.FwkReport.reportEvery = 1
-inputMC = ['file:/eos/cms/store/cmst3/group/l1tr/FastPUPPI/14_2_X/fpinputs_140X/v0/TT_PU200/inputs140X_1.root']
+# inputMC = ['file:/eos/cms/store/cmst3/group/l1tr/FastPUPPI/14_2_X/fpinputs_140X/v0/TT_PU200/inputs140X_1.root']
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring(*inputMC),
+    fileNames = cms.untracked.vstring('file:{}'.format(inputFile)),
     inputCommands = cms.untracked.vstring("keep *", 
             "drop l1tPFClusters_*_*_*",
             "drop l1tPFTracks_*_*_*",
@@ -71,7 +76,7 @@ process.extraPFStuff = cms.Task(
     process.L1TLayer2EGTask
 )
 
-def addJetNTuple(trktype = "extended", nparam = 5):
+def addJetNTuple(trktype = "extended"):
     # create new jet tupler
     jetColl = "l1tSC4PFL1PuppiExtendedEmulator"
     jetCollCorr = "l1tSC4PFL1PuppiExtendedEmulator"
@@ -97,7 +102,8 @@ def addJetNTuple(trktype = "extended", nparam = 5):
         muons = cms.InputTag("l1tSAMuonsGmt","promptSAMuons"),
     )
     process.endTuple = cms.EndPath(process.outnano)
-    outName = "jetTuple_"+trktype+"_"+str(nparam)+".root"
+    # outName = "jetTuple_"+trktype+"_"+str(nparam)+".root"
+    outName = "jetTuple_"+trktype+".root"
     process.TFileService = cms.Service("TFileService", fileName = cms.string(outName))
 
 
@@ -150,15 +156,15 @@ def goMT(nthreads=2):
     process.options.numberOfStreams = cms.untracked.uint32(0)
 
 if True:
-    process.source.fileNames  = cms.untracked.vstring(*inputMC)
+    process.source.fileNames = cms.untracked.vstring('file:{}'.format(inputFile))
     goMT(4)
     trktype = "extended"
-    nparam = 5
+    # nparam = 5
     addSeededConeJets()
     addMultitagging(trktype = trktype)
     addBtagging()
     addNNPuppiTaus()
     addGenJetFlavourTable()
-    addJetNTuple(trktype = trktype, nparam = nparam)
+    addJetNTuple(trktype = trktype)
     if False:
         open("debug_dump_runJetNTuple.py", "w").write(process.dumpPython())
