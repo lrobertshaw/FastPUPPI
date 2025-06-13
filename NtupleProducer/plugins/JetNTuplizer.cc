@@ -275,10 +275,6 @@ class JetNTuplizer : public edm::one::EDAnalyzer<edm::one::SharedResources,edm::
     float jet_muonmatch_dR_;
 
     float jet_jecmatch_dR_;
-
-    unsigned int jet_Hflav_;
-    unsigned int jet_Wflav_;
-    unsigned int jet_Zflav_;
     int jet_pflav_;
 
 
@@ -288,10 +284,10 @@ class JetNTuplizer : public edm::one::EDAnalyzer<edm::one::SharedResources,edm::
     float jet_genmatch_phi_;
     float jet_genmatch_mass_;
     float jet_genmatch_dR_;
-    int jet_genmatch_Hflav_;
-    int jet_genmatch_Wflav_;
-    int jet_genmatch_Zflav_;
+    int jet_genmatch_pdg_;
     int jet_genmatch_Nprongs_;
+    float jet_genmatch_bosonPt_;
+    float jet_genmatch_bosonMass_;
 
     // jet pf candidates
     unsigned int njet_pfcand_;
@@ -432,9 +428,6 @@ JetNTuplizer::JetNTuplizer(const edm::ParameterSet& iConfig) :
     tree_->Branch("jet_taudecaymode", &jet_taudecaymode_);
     tree_->Branch("jet_lepflav", &jet_lepflav_);
     tree_->Branch("jet_taucharge", &jet_taucharge_);
-    tree_->Branch("jet_Hflav", &jet_Hflav_);
-    tree_->Branch("jet_Wflav", &jet_Wflav_);
-    tree_->Branch("jet_Zflav", &jet_Zflav_);
 
     tree_->Branch("jet_genmatch_lep_pt", &jet_genmatch_lep_pt_);
     tree_->Branch("jet_genmatch_lep_vis_pt", &jet_genmatch_lep_vis_pt_);
@@ -448,10 +441,10 @@ JetNTuplizer::JetNTuplizer(const edm::ParameterSet& iConfig) :
     tree_->Branch("jet_taumatch_dR", &jet_taumatch_dR_);
     tree_->Branch("jet_elematch_dR", &jet_elematch_dR_);
     tree_->Branch("jet_muonmatch_dR", &jet_muonmatch_dR_);
-    tree_->Branch("jet_genmatch_Hflav", &jet_genmatch_Hflav_);
-    tree_->Branch("jet_genmatch_Wflav", &jet_genmatch_Wflav_);
-    tree_->Branch("jet_genmatch_Zflav", &jet_genmatch_Zflav_);
+    tree_->Branch("jet_genmatch_pdg", &jet_genmatch_pdg_);
     tree_->Branch("jet_genmatch_Nprongs", &jet_genmatch_Nprongs_);
+    tree_->Branch("jet_genmatch_bosonPt", &jet_genmatch_bosonPt_);
+    tree_->Branch("jet_genmatch_bosonMass", &jet_genmatch_bosonMass_);
 
     tree_->Branch("jet_jecmatch_dR", &jet_jecmatch_dR_);
     tree_->Branch("jet_pt_corr", &jet_pt_corr_);
@@ -631,90 +624,37 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
     // Get truth boson info for wide cone jets
     // loop over gen jets
-    std::vector<int> Hflavs(jetv_gen.size()), Wflavs(jetv_gen.size()), Zflavs(jetv_gen.size()), nProngs(jetv_gen.size());
+    std::vector<int> genPdg(jetv_gen.size()), nProngs(jetv_gen.size());
+    std::vector<float> bosonPts(jetv_gen.size()), bosonMasses(jetv_gen.size());
     int idx = 0;
     for(const reco::GenJetRef& genJet : jetv_gen){
-        std::cout << "GenJet: " << idx << ": pt = " << genJet->pt() << ", eta = " << genJet->eta() << ", phi = " << genJet->phi() << std::endl;
         std::set<const reco::GenParticle*> prongs;
-        int foundH = 0;
-        int foundW = 0;
-        int foundZ = 0;
-        // loop over constituents
+        int bosonId = 0;
+        float bosonPt = 0.0;
+        float bosonMass = 0.0;
         const std::vector<const reco::GenParticle*> constituents = genJet->getGenConstituents();
-        std::cout << "Number of constituents: " << constituents.size() << std::endl;
         for(const reco::GenParticle* constit : constituents){
-            // for each constituent, work up the chain of mothers looking for a H, W or Z.
-            // If a H, W or Z is found, then mark foundH, foundW, or foundZ as 1.
-            // Mark the particle we were on immediately before finding the boson as a prong in the jet and increase nProngs by 1.
-            // After looping over all constituents, if they all lead us to the same prong then the jet should have nProngs=1, if
-            // at least one constituent leads us to a second prong then nProngs=2. The same prong should be marked only once.
-            // But first check if the constituent is a prong or boson itself, before starting the loop up the tree
-
             const reco::GenParticle* current = constit;
-
-            // First, check if the constituent itself is a boson in case of weird final state bosons
-            bool finalStateBoson = false;
-            switch( std::abs(current->pdgId()) ){
-                case 25: // H
-                    foundH = 1;
-                    finalStateBoson = true;
-                    break;
-                case 24: // W
-                    foundW = 1;
-                    finalStateBoson = true;
-                    break;
-                case 23: // Z
-                    foundZ = 1;
-                    finalStateBoson = true;
-                    break;
-            }
-            if (finalStateBoson){
-                std::cout << "Final state boson present!" << std::endl;
-                continue;
-                } // If the constituent is a boson, skip prong marking
-
-            // Otherwise, walk up the mother chain
-            while (current->numberOfMothers() > 0) {    // while there are mothers
+            while (current->numberOfMothers() > 0) {
                 const reco::GenParticle* mother = dynamic_cast<const reco::GenParticle*>(current->mother(0));    // get the mother immediately above
                 if (!mother) break;
-                bool isBosonMother = false;
-                if(mother->isLastCopy()){
-                    switch(std::abs(mother->pdgId())){
-                        case 25: // H
-                            foundH = 1;
-                            isBosonMother = true;
-                            break;
-                        case 24: // W
-                            foundW = 1;
-                            isBosonMother = true;
-                            break;
-                        case 23: // Z
-                            foundZ = 1;
-                            isBosonMother = true;
-                            break;
+                int id = std::abs(mother->pdgId());
+                if(mother->isLastCopy() && (id == 24 || id == 25 || id == 23)) { // W, H, Z
+                    if(mother->pt() >= bosonPt){    // assume highest pt mother is the boson
+                        bosonPt = mother->pt();
+                        bosonMass = mother->mass();
+                        bosonId = mother->pdgId();
+                        prongs.insert(current);    // set so dont need to check if already in set
                     }
-                }
-                if (isBosonMother) {
-                    if(mother->numberOfDaughters() > 2){std::cout << "Found boson! N daughters = " << mother->numberOfDaughters() << "\n" << std::endl;}
-
-                    bool alreadyPresent = false;
-                    for (const reco::GenParticle* prong : prongs) {
-                        if(prong == current) {
-                            alreadyPresent = true;
-                            break;
-                        }
-                    }
-                    if (!alreadyPresent) {prongs.insert(current);}
-
-                    break; // Once a boson mother is found, stop walking up the chain
+                    break;
                 }
                 current = mother;
             }
         }
-        Hflavs.at(idx) = foundH;
-        Wflavs.at(idx) = foundW;
-        Zflavs.at(idx) = foundZ;
+        genPdg.at(idx) = bosonId;
         nProngs.at(idx) = prongs.size();
+        bosonPts.at(idx) = bosonPt;
+        bosonMasses.at(idx) = bosonMass;
         idx += 1;
     }
 
@@ -817,10 +757,10 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             jet_genmatch_phi_ = jetv_gen[pos_matched]->phi();
             jet_genmatch_mass_ = jetv_gen[pos_matched]->mass();
             jet_genmatch_dR_ = minDR;
-            jet_genmatch_Hflav_ = Hflavs.at(pos_matched);
-            jet_genmatch_Wflav_ = Wflavs.at(pos_matched);
-            jet_genmatch_Zflav_ = Zflavs.at(pos_matched);
+            jet_genmatch_pdg_ = genPdg.at(pos_matched);
             jet_genmatch_Nprongs_ = nProngs.at(pos_matched);
+            jet_genmatch_bosonPt_ = bosonPts.at(pos_matched);
+            jet_genmatch_bosonMass_ = bosonMasses.at(pos_matched);
         }
         else{
             jet_genmatch_pt_ = 0;
@@ -828,10 +768,10 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             jet_genmatch_phi_ = 0;
             jet_genmatch_mass_ = 0;
             jet_genmatch_dR_ = 0;
-            jet_genmatch_Hflav_ = -1;
-            jet_genmatch_Wflav_ = -1;
-            jet_genmatch_Zflav_ = -1;
+            jet_genmatch_pdg_ = -1;
             jet_genmatch_Nprongs_ = -1;
+            jet_genmatch_bosonPt_ = -1;
+            jet_genmatch_bosonMass_ = -1;
         }
 
 
