@@ -3,7 +3,7 @@ from Configuration.StandardSequences.Eras import eras
 from PhysicsTools.NanoAOD.common_cff import Var, ExtVar
 import os
 
-if os.path.exists("jetTuple_extended_5.root"): os.remove("jetTuple_extended_5.root")
+if os.path.exists("jetTuple_extended.root"): os.remove("jetTuple_extended.root")
 
 import sys
 inputFile = str(sys.argv[-2])

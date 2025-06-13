@@ -276,7 +276,9 @@ class JetNTuplizer : public edm::one::EDAnalyzer<edm::one::SharedResources,edm::
 
     float jet_jecmatch_dR_;
 
-    unsigned int jet_hflav_;
+    unsigned int jet_Hflav_;
+    unsigned int jet_Wflav_;
+    unsigned int jet_Zflav_;
     int jet_pflav_;
 
 
@@ -286,9 +288,9 @@ class JetNTuplizer : public edm::one::EDAnalyzer<edm::one::SharedResources,edm::
     float jet_genmatch_phi_;
     float jet_genmatch_mass_;
     float jet_genmatch_dR_;
-    unsigned int jet_genmatch_hflav_;
-    int jet_genmatch_pflav_;
-
+    int jet_genmatch_Hflav_;
+    int jet_genmatch_Wflav_;
+    int jet_genmatch_Zflav_;
 
     // jet pf candidates
     unsigned int njet_pfcand_;
@@ -429,6 +431,9 @@ JetNTuplizer::JetNTuplizer(const edm::ParameterSet& iConfig) :
     tree_->Branch("jet_taudecaymode", &jet_taudecaymode_);
     tree_->Branch("jet_lepflav", &jet_lepflav_);
     tree_->Branch("jet_taucharge", &jet_taucharge_);
+    tree_->Branch("jet_Hflav", &jet_Hflav_);
+    tree_->Branch("jet_Wflav", &jet_Wflav_);
+    tree_->Branch("jet_Zflav", &jet_Zflav_);
 
     tree_->Branch("jet_genmatch_lep_pt", &jet_genmatch_lep_pt_);
     tree_->Branch("jet_genmatch_lep_vis_pt", &jet_genmatch_lep_vis_pt_);
@@ -442,8 +447,9 @@ JetNTuplizer::JetNTuplizer(const edm::ParameterSet& iConfig) :
     tree_->Branch("jet_taumatch_dR", &jet_taumatch_dR_);
     tree_->Branch("jet_elematch_dR", &jet_elematch_dR_);
     tree_->Branch("jet_muonmatch_dR", &jet_muonmatch_dR_);
-    tree_->Branch("jet_genmatch_hflav", &jet_genmatch_hflav_);
-    tree_->Branch("jet_genmatch_pflav", &jet_genmatch_pflav_);
+    tree_->Branch("jet_genmatch_Hflav", &jet_genmatch_Hflav_);
+    tree_->Branch("jet_genmatch_Wflav", &jet_genmatch_Wflav_);
+    tree_->Branch("jet_genmatch_Zflav", &jet_genmatch_Zflav_);
 
     tree_->Branch("jet_jecmatch_dR", &jet_jecmatch_dR_);
     tree_->Branch("jet_pt_corr", &jet_pt_corr_);
@@ -605,7 +611,6 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         }
     }
 
-
     edm::Handle<edm::ValueMap<std::vector<float>>> multijetIDhandle;
     iEvent.getByToken(multijetids_, multijetIDhandle);
 
@@ -620,6 +625,89 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             jetv_gen.push_back(jref);                                                                                                                                                              
         }
         sort(jetv_gen.begin(), jetv_gen.end(), genJetRefSorter);
+    }
+
+    // Get truth boson info for wide cone jets
+    // loop over gen jets
+    std::vector<int> Hflavs(jetv_gen.size()), Wflavs(jetv_gen.size()), Zflavs(jetv_gen.size()), nProngs(jetv_gen.size());
+    int idx = 0;
+    for(const reco::GenJetRef& genJet : jetv_gen){
+        std::set<const reco::GenParticle*> prongs;
+        int foundH = 0;
+        int foundW = 0;
+        int foundZ = 0;
+        // loop over constituents
+        const std::vector<const reco::GenParticle*> constituents = genJet->getGenConstituents();
+        for(const reco::GenParticle* constit : constituents){
+            // for each constituent, work up the chain of mothers looking for a H, W or Z.
+            // If a H, W or Z is found, then mark foundH, foundW, or foundZ as 1.
+            // Mark the particle we were on immediately before finding the boson as a prong in the jet and increase nProngs by 1.
+            // After looping over all constituents, if they all lead us to the same prong then the jet should have nProngs=1, if
+            // at least one constituent leads us to a second prong then nProngs=2. The same prong should be marked only once.
+            // But first check if the constituent is a prong or boson itself, before starting the loop up the tree
+
+            // We'll use a set to keep track of unique prongs (by pointer address)
+            const reco::GenParticle* current = constit;
+
+            // First, check if the constituent itself is a boson in case of weird final state bosons
+            bool finalStateBoson = false;
+            switch( std::abs(current->pdgId()) ){
+                case 25: // H
+                    foundH = 1;
+                    finalStateBoson = true;
+                    break;
+                case 24: // W
+                    foundW = 1;
+                    finalStateBoson = true;
+                    break;
+                case 23: // Z
+                    foundZ = 1;
+                    finalStateBoson = true;
+                    break;
+            }
+            if (finalStateBoson) {continue;} // If the constituent is a boson, skip prong marking
+
+            // Otherwise, walk up the mother chain
+            while (current->numberOfMothers() > 0) {    // while there are mothers
+                const reco::GenParticle* mother = dynamic_cast<const reco::GenParticle*>(current->mother(0));    // get the mother immediately above
+                if (!mother) break;
+                bool isBosonMother = false;
+                switch(std::abs(mother->pdgId())){
+                    case 25: // H
+                        foundH = 1;
+                        isBosonMother = true;
+                        break;
+                    case 24: // W
+                        foundW = 1;
+                        isBosonMother = true;
+                        break;
+                    case 23: // Z
+                        foundZ = 1;
+                        isBosonMother = true;
+                        break;
+                }
+                if (isBosonMother) {
+                    std::cout << "Found boson! N daughters = " << mother->numberOfDaughters() << "\n" << std::endl;
+
+                    bool alreadyPresent = false;
+                    for (const reco::GenParticle* prong : prongs) {
+                        if (prong->pdgId() == current->pdgId() && prong->p4() == current->p4()) {
+                            alreadyPresent = true;
+                            break;
+                        }
+                    }
+                    if (!alreadyPresent) {prongs.insert(current);}
+
+                    break; // Once a boson mother is found, stop walking up the chain
+                }
+                current = mother;
+            }
+        }
+        Hflavs.at(idx) = foundH;
+        Wflavs.at(idx) = foundW;
+        Zflavs.at(idx) = foundZ;
+        nProngs.at(idx) = prongs.size();
+        idx += 1;
     }
 
     // reco jets
@@ -721,8 +809,9 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             jet_genmatch_phi_ = jetv_gen[pos_matched]->phi();
             jet_genmatch_mass_ = jetv_gen[pos_matched]->mass();
             jet_genmatch_dR_ = minDR;
-            // jet_genmatch_hflav_ = (*genJetsFlavour)[edm::RefToBase<reco::Jet>(jetv_gen[pos_matched])].getHadronFlavour();
-            // jet_genmatch_pflav_ = (*genJetsFlavour)[edm::RefToBase<reco::Jet>(jetv_gen[pos_matched])].getPartonFlavour();      
+            jet_genmatch_Hflav_ = Hflavs.at(pos_matched);
+            jet_genmatch_Wflav_ = Wflavs.at(pos_matched);
+            jet_genmatch_Zflav_ = Zflavs.at(pos_matched);
         }
         else{
             jet_genmatch_pt_ = 0;
@@ -730,8 +819,9 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             jet_genmatch_phi_ = 0;
             jet_genmatch_mass_ = 0;
             jet_genmatch_dR_ = 0;
-            // jet_genmatch_hflav_ = 0;
-            // jet_genmatch_pflav_ = 0;
+            jet_genmatch_Hflav_ = -1;
+            jet_genmatch_Wflav_ = -1;
+            jet_genmatch_Zflav_ = -1;
         }
 
 
@@ -1193,13 +1283,10 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
         tree_->Fill();
     }
-
-
 }
 
 
-void JetNTuplizer::fill_genParticles(const edm::Event& iEvent)
-{
+void JetNTuplizer::fill_genParticles(const edm::Event& iEvent){
     gToBB_.clear();
     gToCC_.clear();
     neutrinosLepB_.clear();
@@ -1215,6 +1302,7 @@ void JetNTuplizer::fill_genParticles(const edm::Event& iEvent)
     gen_particle_mass.clear();
     gen_particle_id.clear();
     gen_particle_status.clear();
+
     gen_particle_daughters_id.clear();
     gen_particle_daughters_igen.clear();
     gen_particle_daughters_status.clear();
@@ -1235,13 +1323,15 @@ void JetNTuplizer::fill_genParticles(const edm::Event& iEvent)
     tau_gen_nnh_.clear();
 
 
-    if(!iEvent.isRealData())
-    {
+    if(!iEvent.isRealData()){
         edm::Handle<reco::GenParticleCollection> genParticles;
         iEvent.getByToken(genparticles_, genParticles);
 
+        // Loop over all gen particles
         for (const reco::Candidate &genC : *genParticles){
             const reco::GenParticle &gen = static_cast< const reco::GenParticle &>(genC);
+
+            // If particle is a B hadron
             if( (abs(gen.pdgId()) > 500 && abs(gen.pdgId()) < 600) || (abs(gen.pdgId()) > 5000 && abs(gen.pdgId()) < 6000) ){
                 Bhadron_.push_back(gen);
                 if(gen.numberOfDaughters()>0){
@@ -1260,10 +1350,8 @@ void JetNTuplizer::fill_genParticles(const edm::Event& iEvent)
                     Bhadron_daughter_.push_back(gen);
                 }
             }
-        }
 
-        for (const reco::Candidate &genC : *genParticles){
-            const reco::GenParticle &gen = static_cast< const reco::GenParticle &>(genC);
+            // If particle is a neutrino
             if(abs(gen.pdgId())==12||abs(gen.pdgId())==14||abs(gen.pdgId())==16){
                 const reco::GenParticle* mother =  static_cast< const reco::GenParticle*> (gen.mother());
                 if(mother!=NULL){
@@ -1277,9 +1365,9 @@ void JetNTuplizer::fill_genParticles(const edm::Event& iEvent)
                     std::cout << "No mother" << std::endl;
                 }
             }
-            int id(std::abs(gen.pdgId()));
-            int status(gen.status());
-            if (id == 21 && status >= 21 && status <= 59){ //// Pythia8 hard scatter, ISR, or FSR
+
+            // If particle is a gluon
+            if (std::abs(gen.pdgId()) == 21 && gen.status() >= 21 && gen.status() <= 59){ //// Pythia8 hard scatter, ISR, or FSR
                 if ( gen.numberOfDaughters() == 2 ){
                     const reco::Candidate* d0 = gen.daughter(0);
                     const reco::Candidate* d1 = gen.daughter(1);
@@ -1291,166 +1379,154 @@ void JetNTuplizer::fill_genParticles(const edm::Event& iEvent)
                     }
                 }
             }
-            if(id == 15 && false){
+            // If particle is a tau
+            if(std::abs(gen.pdgId()) == 15){
                 alltaus_.push_back(gen);
             }
         }
-
         // ---------------------------------------
         // from PNET
 
-  // GEN particle informatio
-    if(genParticles.isValid()){
-        unsigned int igen = 0;
-        for (auto gens_iter = genParticles->begin(); gens_iter != genParticles->end(); ++gens_iter) {      
 
-            if( (abs(gens_iter->pdgId()) == 25 or abs(gens_iter->pdgId()) == 24 or abs(gens_iter->pdgId()) == 23) and gens_iter->isLastCopy() and gens_iter->statusFlags().fromHardProcess() )
-            {
-                gen_particle_pt.push_back(gens_iter->pt());
-                gen_particle_eta.push_back(gens_iter->eta());
-                gen_particle_phi.push_back(gens_iter->phi());
-                gen_particle_mass.push_back(gens_iter->mass());
-                gen_particle_id.push_back(gens_iter->pdgId());
-                gen_particle_status.push_back(gens_iter->status());
+        // GEN particle information
+        if(genParticles.isValid()){
+            unsigned int igen = 0;
+            for (auto gens_iter = genParticles->begin(); gens_iter != genParticles->end(); ++gens_iter){
+                // if particle is a Higgs, W, Z, or top, and last copy and from hard process
+                if( (abs(gens_iter->pdgId()) == 25 or abs(gens_iter->pdgId()) == 24 or abs(gens_iter->pdgId()) == 23) and gens_iter->isLastCopy() and gens_iter->statusFlags().fromHardProcess() )
+                {
+                    gen_particle_pt.push_back(gens_iter->pt());
+                    gen_particle_eta.push_back(gens_iter->eta());
+                    gen_particle_phi.push_back(gens_iter->phi());
+                    gen_particle_mass.push_back(gens_iter->mass());
+                    gen_particle_id.push_back(gens_iter->pdgId());
+                    gen_particle_status.push_back(gens_iter->status());
 
-                for(size_t idau = 0; idau < gens_iter->numberOfDaughters(); idau++){
-                    gen_particle_daughters_id.push_back(gens_iter->daughter(idau)->pdgId());
-                    gen_particle_daughters_igen.push_back(igen);
-                    gen_particle_daughters_pt.push_back(gens_iter->daughter(idau)->pt());
-                    gen_particle_daughters_eta.push_back(gens_iter->daughter(idau)->eta());
-                    gen_particle_daughters_phi.push_back(gens_iter->daughter(idau)->phi());
-                    gen_particle_daughters_mass.push_back(gens_iter->daughter(idau)->mass());
-                    gen_particle_daughters_status.push_back(gens_iter->daughter(idau)->status());
-                    gen_particle_daughters_charge.push_back(gens_iter->daughter(idau)->charge());
+                    for(size_t idau = 0; idau < gens_iter->numberOfDaughters(); idau++){
+                        gen_particle_daughters_id.push_back(gens_iter->daughter(idau)->pdgId());
+                        gen_particle_daughters_igen.push_back(igen);
+                        gen_particle_daughters_pt.push_back(gens_iter->daughter(idau)->pt());
+                        gen_particle_daughters_eta.push_back(gens_iter->daughter(idau)->eta());
+                        gen_particle_daughters_phi.push_back(gens_iter->daughter(idau)->phi());
+                        gen_particle_daughters_mass.push_back(gens_iter->daughter(idau)->mass());
+                        gen_particle_daughters_status.push_back(gens_iter->daughter(idau)->status());
+                        gen_particle_daughters_charge.push_back(gens_iter->daughter(idau)->charge());
+                    }
+                    igen++;
                 }
-                igen++;
-            }
 
-            // Final states Leptons (e,mu) and Neutrinos --> exclude taus. They need to be prompt or from Tau decay      
-            if (abs(gens_iter->pdgId()) > 10 and abs(gens_iter->pdgId()) < 17 and abs(gens_iter->pdgId()) != 15  and 
-            (gens_iter->isPromptFinalState() or 
-            gens_iter->isDirectPromptTauDecayProductFinalState())) { 
+                // Final states Leptons (e,mu) and Neutrinos --> exclude taus. They need to be prompt or from Tau decay      
+                if (abs(gens_iter->pdgId()) > 10 and abs(gens_iter->pdgId()) < 17 and abs(gens_iter->pdgId()) != 15  and (gens_iter->isPromptFinalState() or gens_iter->isDirectPromptTauDecayProductFinalState())) { 
 
-                gen_particle_pt.push_back(gens_iter->pt());
-                gen_particle_eta.push_back(gens_iter->eta());
-                gen_particle_phi.push_back(gens_iter->phi());
-                gen_particle_mass.push_back(gens_iter->mass());
-                gen_particle_id.push_back(gens_iter->pdgId());
-                gen_particle_status.push_back(gens_iter->status());
+                    gen_particle_pt.push_back(gens_iter->pt());
+                    gen_particle_eta.push_back(gens_iter->eta());
+                    gen_particle_phi.push_back(gens_iter->phi());
+                    gen_particle_mass.push_back(gens_iter->mass());
+                    gen_particle_id.push_back(gens_iter->pdgId());
+                    gen_particle_status.push_back(gens_iter->status());
 
-                // No need to save daughters here
-                igen++;
-            }
-
-            // Final state quarks or gluons from the hard process before the shower --> partons in which H/Z/W/top decay into
-            if (((abs(gens_iter->pdgId()) >= 1 and abs(gens_iter->pdgId()) <= 5) or abs(gens_iter->pdgId()) == 21) and 
-            gens_iter->statusFlags().fromHardProcess() and 
-            gens_iter->statusFlags().isFirstCopy()){
-                gen_particle_pt.push_back(gens_iter->pt());
-                gen_particle_eta.push_back(gens_iter->eta());
-                gen_particle_phi.push_back(gens_iter->phi());
-                gen_particle_mass.push_back(gens_iter->mass());
-                gen_particle_id.push_back(gens_iter->pdgId());
-                gen_particle_status.push_back(gens_iter->status());
-                igen++;
-                // no need to save daughters
-            }
-
-            // Special case of taus: last-copy, from hard process and, prompt and decayed
-            if(abs(gens_iter->pdgId()) == 15 and 
-            gens_iter->isLastCopy() and
-            gens_iter->statusFlags().fromHardProcess() and
-            gens_iter->isPromptDecayed()){ // hadronic taus
-
-                gen_particle_pt.push_back(gens_iter->pt());
-                gen_particle_eta.push_back(gens_iter->eta());
-                gen_particle_phi.push_back(gens_iter->phi());
-                gen_particle_mass.push_back(gens_iter->mass());
-                gen_particle_id.push_back(gens_iter->pdgId());
-                gen_particle_status.push_back(gens_iter->status());
-
-                // only store the final decay particles
-                for(size_t idau = 0; idau < gens_iter->numberOfDaughters(); idau++){
-                    if(not dynamic_cast<const reco::GenParticle*>(gens_iter->daughter(idau))->statusFlags().isPromptTauDecayProduct()) continue;
-                    gen_particle_daughters_id.push_back(gens_iter->daughter(idau)->pdgId());
-                    gen_particle_daughters_igen.push_back(igen);
-                    gen_particle_daughters_pt.push_back(gens_iter->daughter(idau)->pt());
-                    gen_particle_daughters_eta.push_back(gens_iter->daughter(idau)->eta());
-                    gen_particle_daughters_phi.push_back(gens_iter->daughter(idau)->phi());
-                    gen_particle_daughters_mass.push_back(gens_iter->daughter(idau)->mass());    
-                    gen_particle_daughters_status.push_back(gens_iter->daughter(idau)->status());
-                    gen_particle_daughters_charge.push_back(gens_iter->daughter(idau)->charge());
+                    // No need to save daughters here
+                    igen++;
                 }
-                igen++;
-            }  
+
+                // Final state quarks or gluons from the hard process before the shower --> partons in which H/Z/W/top decay into
+                if (((abs(gens_iter->pdgId()) >= 1 and abs(gens_iter->pdgId()) <= 5) or abs(gens_iter->pdgId()) == 21) and gens_iter->statusFlags().fromHardProcess() and gens_iter->statusFlags().isFirstCopy()){
+                    gen_particle_pt.push_back(gens_iter->pt());
+                    gen_particle_eta.push_back(gens_iter->eta());
+                    gen_particle_phi.push_back(gens_iter->phi());
+                    gen_particle_mass.push_back(gens_iter->mass());
+                    gen_particle_id.push_back(gens_iter->pdgId());
+                    gen_particle_status.push_back(gens_iter->status());
+                    igen++;
+                    // no need to save daughters
+                }
+
+                // Special case of taus: last-copy, from hard process and, prompt and decayed
+                if(abs(gens_iter->pdgId()) == 15 and gens_iter->isLastCopy() and gens_iter->statusFlags().fromHardProcess() and gens_iter->isPromptDecayed()){ // hadronic taus
+                    gen_particle_pt.push_back(gens_iter->pt());
+                    gen_particle_eta.push_back(gens_iter->eta());
+                    gen_particle_phi.push_back(gens_iter->phi());
+                    gen_particle_mass.push_back(gens_iter->mass());
+                    gen_particle_id.push_back(gens_iter->pdgId());
+                    gen_particle_status.push_back(gens_iter->status());
+
+                    // only store the final decay particles
+                    for(size_t idau = 0; idau < gens_iter->numberOfDaughters(); idau++){
+                        if(not dynamic_cast<const reco::GenParticle*>(gens_iter->daughter(idau))->statusFlags().isPromptTauDecayProduct()) continue;
+                        gen_particle_daughters_id.push_back(gens_iter->daughter(idau)->pdgId());
+                        gen_particle_daughters_igen.push_back(igen);
+                        gen_particle_daughters_pt.push_back(gens_iter->daughter(idau)->pt());
+                        gen_particle_daughters_eta.push_back(gens_iter->daughter(idau)->eta());
+                        gen_particle_daughters_phi.push_back(gens_iter->daughter(idau)->phi());
+                        gen_particle_daughters_mass.push_back(gens_iter->daughter(idau)->mass());    
+                        gen_particle_daughters_status.push_back(gens_iter->daughter(idau)->status());
+                        gen_particle_daughters_charge.push_back(gens_iter->daughter(idau)->charge());
+                    }
+                    igen++;
+                }  
+            }
+
+            // iterate over all gen particles stored above
+            for(size_t igen = 0; igen < gen_particle_pt.size(); igen++){
+                // select resonances like Higgs, W, Z, taus
+                if(abs(gen_particle_id.at(igen)) == 25 or abs(gen_particle_id.at(igen)) == 23 or abs(gen_particle_id.at(igen)) == 24 or abs(gen_particle_id.at(igen)) == 15){	
+                    for(size_t idau = 0; idau < gen_particle_daughters_id.size(); idau++){
+
+                        // select electrons or muons from the resonance / tau decay
+                        if( gen_particle_daughters_igen.at(idau) == igen and (abs(gen_particle_daughters_id.at(idau)) == 11 or abs(gen_particle_daughters_id.at(idau)) == 13) ){
+                            TLorentzVector gen4V;
+                            gen4V.SetPtEtaPhiM(gen_particle_daughters_pt.at(idau),gen_particle_daughters_eta.at(idau),gen_particle_daughters_phi.at(idau),gen_particle_daughters_mass.at(idau));
+                            if(std::find(genLepFromResonance4V_.begin(),genLepFromResonance4V_.end(),gen4V) == genLepFromResonance4V_.end()){
+                                genLepFromResonance4V_.push_back(gen4V);
+                            }
+                            if(abs(gen_particle_daughters_id.at(idau)) == 13 and std::find(genMuonsFromResonance4V_.begin(),genMuonsFromResonance4V_.end(),gen4V) == genMuonsFromResonance4V_.end()){
+                                genMuonsFromResonance4V_.push_back(gen4V);
+                            }
+                            if(abs(gen_particle_daughters_id.at(idau)) == 11 and std::find(genElectronsFromResonance4V_.begin(),genElectronsFromResonance4V_.end(),gen4V) == genElectronsFromResonance4V_.end()){
+                                genElectronsFromResonance4V_.push_back(gen4V);
+                            }
+                        }
+                    }
+                }
+            }   
+
+            
+            // Gen hadronic taus	
+            for(size_t igen = 0; igen < gen_particle_pt.size(); igen++){
+                if(abs(gen_particle_id.at(igen)) == 15){ // hadronic or leptonic tau
+                    TLorentzVector tau_gen_tmp;
+                    unsigned int tau_gen_nch_tmp(0);
+                    unsigned int tau_gen_np0_tmp(0);
+                    unsigned int tau_gen_nnh_tmp(0);
+                    for(size_t idau = 0; idau < gen_particle_daughters_pt.size(); idau++){
+                        if(gen_particle_daughters_igen.at(idau) == igen and
+                        abs(gen_particle_daughters_id.at(idau)) != 11 and // no mu
+                        abs(gen_particle_daughters_id.at(idau)) != 13 and // no el
+                        abs(gen_particle_daughters_id.at(idau)) != 12 and // no neutrinos
+                        abs(gen_particle_daughters_id.at(idau)) != 14 and
+                        abs(gen_particle_daughters_id.at(idau)) != 16){
+                            TLorentzVector tmp4V; 
+                            tmp4V.SetPtEtaPhiM(gen_particle_daughters_pt.at(idau),gen_particle_daughters_eta.at(idau),gen_particle_daughters_phi.at(idau),gen_particle_daughters_mass.at(idau));
+                            tau_gen_tmp += tmp4V;
+                            if (gen_particle_daughters_charge.at(idau) != 0 and gen_particle_daughters_status.at(idau) == 1) tau_gen_nch_tmp ++; // charged particles
+                            else if(gen_particle_daughters_charge.at(idau) == 0 and gen_particle_daughters_id.at(idau) == 111) tau_gen_np0_tmp++;
+                            else if(gen_particle_daughters_charge.at(idau) == 0 and gen_particle_daughters_id.at(idau) != 111) tau_gen_nnh_tmp++;
+                        }
+                    }
+
+                    if(tau_gen_tmp.Pt() > 0){ // good hadronic tau
+                        tau_gen_visible_.push_back(tau_gen_tmp);
+                        tau_gen_tmp.SetPtEtaPhiM(gen_particle_pt.at(igen),gen_particle_eta.at(igen),gen_particle_phi.at(igen),gen_particle_mass.at(igen));
+                        tau_gen_charge_.push_back((gen_particle_id.at(igen) > 0) ? -1 : 1);
+                        // std::cout<<((gen_particle_id.at(igen) > 0) ? -1 : 1)<<std::endl;
+                        tau_gen_.push_back(tau_gen_tmp);
+                        tau_gen_nch_.push_back(tau_gen_nch_tmp);
+                        tau_gen_np0_.push_back(tau_gen_np0_tmp);
+                        tau_gen_nnh_.push_back(tau_gen_nnh_tmp);
+                    }
+                }
+            }       
         }
-    }
-
-
-
-        for(size_t igen = 0; igen < gen_particle_pt.size(); igen++){
-            // select resonances like Higgs, W, Z, taus
-            if(abs(gen_particle_id.at(igen)) == 25 or
-            abs(gen_particle_id.at(igen)) == 23 or
-            abs(gen_particle_id.at(igen)) == 24 or
-            abs(gen_particle_id.at(igen)) == 15){	
-            for(size_t idau = 0; idau < gen_particle_daughters_id.size(); idau++){
-                // select electrons or muons from the resonance / tau decay
-                if(gen_particle_daughters_igen.at(idau) == igen and
-                (abs(gen_particle_daughters_id.at(idau)) == 11 or
-                abs(gen_particle_daughters_id.at(idau)) == 13)){
-                    TLorentzVector gen4V;
-                    gen4V.SetPtEtaPhiM(gen_particle_daughters_pt.at(idau),gen_particle_daughters_eta.at(idau),gen_particle_daughters_phi.at(idau),gen_particle_daughters_mass.at(idau));
-                    if(std::find(genLepFromResonance4V_.begin(),genLepFromResonance4V_.end(),gen4V) == genLepFromResonance4V_.end())
-                    genLepFromResonance4V_.push_back(gen4V);
-                    if(abs(gen_particle_daughters_id.at(idau)) == 13 and 
-                    std::find(genMuonsFromResonance4V_.begin(),genMuonsFromResonance4V_.end(),gen4V) == genMuonsFromResonance4V_.end()){
-                    genMuonsFromResonance4V_.push_back(gen4V);
-                    }
-                    if(abs(gen_particle_daughters_id.at(idau)) == 11 and 
-                    std::find(genElectronsFromResonance4V_.begin(),genElectronsFromResonance4V_.end(),gen4V) == genElectronsFromResonance4V_.end()){
-                        genElectronsFromResonance4V_.push_back(gen4V);		
-                    }
-                }
-            }
-            }
-        }   
-
-        
-        // Gen hadronic taus	
-        for(size_t igen = 0; igen < gen_particle_pt.size(); igen++){
-            if(abs(gen_particle_id.at(igen)) == 15){ // hadronic or leptonic tau
-                TLorentzVector tau_gen_tmp;
-                unsigned int tau_gen_nch_tmp(0);
-                unsigned int tau_gen_np0_tmp(0);
-                unsigned int tau_gen_nnh_tmp(0);
-                for(size_t idau = 0; idau < gen_particle_daughters_pt.size(); idau++){
-                    if(gen_particle_daughters_igen.at(idau) == igen and
-                    abs(gen_particle_daughters_id.at(idau)) != 11 and // no mu
-                    abs(gen_particle_daughters_id.at(idau)) != 13 and // no el
-                    abs(gen_particle_daughters_id.at(idau)) != 12 and // no neutrinos
-                    abs(gen_particle_daughters_id.at(idau)) != 14 and
-                    abs(gen_particle_daughters_id.at(idau)) != 16){
-                    TLorentzVector tmp4V; 
-                    tmp4V.SetPtEtaPhiM(gen_particle_daughters_pt.at(idau),gen_particle_daughters_eta.at(idau),gen_particle_daughters_phi.at(idau),gen_particle_daughters_mass.at(idau));
-                    tau_gen_tmp += tmp4V;
-                    if (gen_particle_daughters_charge.at(idau) != 0 and gen_particle_daughters_status.at(idau) == 1) tau_gen_nch_tmp ++; // charged particles
-                    else if(gen_particle_daughters_charge.at(idau) == 0 and gen_particle_daughters_id.at(idau) == 111) tau_gen_np0_tmp++;
-                    else if(gen_particle_daughters_charge.at(idau) == 0 and gen_particle_daughters_id.at(idau) != 111) tau_gen_nnh_tmp++;
-                    }
-                }	
-                if(tau_gen_tmp.Pt() > 0){ // good hadronic tau
-                    tau_gen_visible_.push_back(tau_gen_tmp);
-                    tau_gen_tmp.SetPtEtaPhiM(gen_particle_pt.at(igen),gen_particle_eta.at(igen),gen_particle_phi.at(igen),gen_particle_mass.at(igen));
-                    tau_gen_charge_.push_back((gen_particle_id.at(igen) > 0) ? -1 : 1);
-                    // std::cout<<((gen_particle_id.at(igen) > 0) ? -1 : 1)<<std::endl;
-                    tau_gen_.push_back(tau_gen_tmp);
-                    tau_gen_nch_.push_back(tau_gen_nch_tmp);
-                    tau_gen_np0_.push_back(tau_gen_np0_tmp);
-                    tau_gen_nnh_.push_back(tau_gen_nnh_tmp);
-                }
-            }
-        }       
     }
 }
 
