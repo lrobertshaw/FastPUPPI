@@ -291,6 +291,7 @@ class JetNTuplizer : public edm::one::EDAnalyzer<edm::one::SharedResources,edm::
     int jet_genmatch_Hflav_;
     int jet_genmatch_Wflav_;
     int jet_genmatch_Zflav_;
+    int jet_genmatch_Nprongs_;
 
     // jet pf candidates
     unsigned int njet_pfcand_;
@@ -450,6 +451,7 @@ JetNTuplizer::JetNTuplizer(const edm::ParameterSet& iConfig) :
     tree_->Branch("jet_genmatch_Hflav", &jet_genmatch_Hflav_);
     tree_->Branch("jet_genmatch_Wflav", &jet_genmatch_Wflav_);
     tree_->Branch("jet_genmatch_Zflav", &jet_genmatch_Zflav_);
+    tree_->Branch("jet_genmatch_Nprongs", &jet_genmatch_Nprongs_);
 
     tree_->Branch("jet_jecmatch_dR", &jet_jecmatch_dR_);
     tree_->Branch("jet_pt_corr", &jet_pt_corr_);
@@ -632,12 +634,14 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     std::vector<int> Hflavs(jetv_gen.size()), Wflavs(jetv_gen.size()), Zflavs(jetv_gen.size()), nProngs(jetv_gen.size());
     int idx = 0;
     for(const reco::GenJetRef& genJet : jetv_gen){
+        std::cout << "GenJet: " << idx << ": pt = " << genJet->pt() << ", eta = " << genJet->eta() << ", phi = " << genJet->phi() << std::endl;
         std::set<const reco::GenParticle*> prongs;
         int foundH = 0;
         int foundW = 0;
         int foundZ = 0;
         // loop over constituents
         const std::vector<const reco::GenParticle*> constituents = genJet->getGenConstituents();
+        std::cout << "Number of constituents: " << constituents.size() << std::endl;
         for(const reco::GenParticle* constit : constituents){
             // for each constituent, work up the chain of mothers looking for a H, W or Z.
             // If a H, W or Z is found, then mark foundH, foundW, or foundZ as 1.
@@ -646,7 +650,6 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             // at least one constituent leads us to a second prong then nProngs=2. The same prong should be marked only once.
             // But first check if the constituent is a prong or boson itself, before starting the loop up the tree
 
-            // We'll use a set to keep track of unique prongs (by pointer address)
             const reco::GenParticle* current = constit;
 
             // First, check if the constituent itself is a boson in case of weird final state bosons
@@ -665,33 +668,38 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                     finalStateBoson = true;
                     break;
             }
-            if (finalStateBoson) {continue;} // If the constituent is a boson, skip prong marking
+            if (finalStateBoson){
+                std::cout << "Final state boson present!" << std::endl;
+                continue;
+                } // If the constituent is a boson, skip prong marking
 
             // Otherwise, walk up the mother chain
             while (current->numberOfMothers() > 0) {    // while there are mothers
                 const reco::GenParticle* mother = dynamic_cast<const reco::GenParticle*>(current->mother(0));    // get the mother immediately above
                 if (!mother) break;
                 bool isBosonMother = false;
-                switch(std::abs(mother->pdgId())){
-                    case 25: // H
-                        foundH = 1;
-                        isBosonMother = true;
-                        break;
-                    case 24: // W
-                        foundW = 1;
-                        isBosonMother = true;
-                        break;
-                    case 23: // Z
-                        foundZ = 1;
-                        isBosonMother = true;
-                        break;
+                if(mother->isLastCopy()){
+                    switch(std::abs(mother->pdgId())){
+                        case 25: // H
+                            foundH = 1;
+                            isBosonMother = true;
+                            break;
+                        case 24: // W
+                            foundW = 1;
+                            isBosonMother = true;
+                            break;
+                        case 23: // Z
+                            foundZ = 1;
+                            isBosonMother = true;
+                            break;
+                    }
                 }
                 if (isBosonMother) {
-                    std::cout << "Found boson! N daughters = " << mother->numberOfDaughters() << "\n" << std::endl;
+                    if(mother->numberOfDaughters() > 2){std::cout << "Found boson! N daughters = " << mother->numberOfDaughters() << "\n" << std::endl;}
 
                     bool alreadyPresent = false;
                     for (const reco::GenParticle* prong : prongs) {
-                        if (prong->pdgId() == current->pdgId() && prong->p4() == current->p4()) {
+                        if(prong == current) {
                             alreadyPresent = true;
                             break;
                         }
@@ -812,6 +820,7 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             jet_genmatch_Hflav_ = Hflavs.at(pos_matched);
             jet_genmatch_Wflav_ = Wflavs.at(pos_matched);
             jet_genmatch_Zflav_ = Zflavs.at(pos_matched);
+            jet_genmatch_Nprongs_ = nProngs.at(pos_matched);
         }
         else{
             jet_genmatch_pt_ = 0;
@@ -822,6 +831,7 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             jet_genmatch_Hflav_ = -1;
             jet_genmatch_Wflav_ = -1;
             jet_genmatch_Zflav_ = -1;
+            jet_genmatch_Nprongs_ = -1;
         }
 
 
