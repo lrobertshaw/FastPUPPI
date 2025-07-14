@@ -627,28 +627,30 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     std::vector<int> genPdg(jetv_gen.size()), nProngs(jetv_gen.size());
     std::vector<float> bosonPts(jetv_gen.size()), bosonMasses(jetv_gen.size());
     int idx = 0;
-    for(const reco::GenJetRef& genJet : jetv_gen){
+    for(const reco::GenJetRef& genJet : jetv_gen){    // loop over gen jets
+        // define values for each jet
         std::set<const reco::GenParticle*> prongs;
         int bosonId = 0;
         float bosonPt = 0.0;
         float bosonMass = 0.0;
         const std::vector<const reco::GenParticle*> constituents = genJet->getGenConstituents();
+        // loop over jet constituents
         for(const reco::GenParticle* constit : constituents){
             const reco::GenParticle* current = constit;
-            while (current->numberOfMothers() > 0) {
+            while (current->numberOfMothers() > 0) {    // climb up the gen particle chain
                 const reco::GenParticle* mother = dynamic_cast<const reco::GenParticle*>(current->mother(0));    // get the mother immediately above
                 if (!mother) break;
                 int id = std::abs(mother->pdgId());
                 if(mother->isLastCopy() && (id == 24 || id == 25 || id == 23)) { // W, H, Z
-                    if(mother->pt() >= bosonPt){    // assume highest pt mother is the boson
+                    if(mother->pt() >= bosonPt){    // assume highest pt mother is the boson, in case of overlapping jets
+                        prongs.insert(current);    // set so dont need to check if already in set
+                        bosonId = mother->pdgId();
                         bosonPt = mother->pt();
                         bosonMass = mother->mass();
-                        bosonId = mother->pdgId();
-                        prongs.insert(current);    // set so dont need to check if already in set
                     }
-                    break;
+                    break;    // stop climbing up the chain for this constituent and move onto the next
                 }
-                current = mother;
+                current = mother;    // Climb up chain
             }
         }
         genPdg.at(idx) = bosonId;
@@ -763,11 +765,11 @@ JetNTuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             jet_genmatch_bosonMass_ = bosonMasses.at(pos_matched);
         }
         else{
-            jet_genmatch_pt_ = 0;
-            jet_genmatch_eta_ = 0;
-            jet_genmatch_phi_ = 0;
-            jet_genmatch_mass_ = 0;
-            jet_genmatch_dR_ = 0;
+            jet_genmatch_pt_ = -1;
+            jet_genmatch_eta_ = -1;
+            jet_genmatch_phi_ = -1;
+            jet_genmatch_mass_ = -1;
+            jet_genmatch_dR_ = -1;
             jet_genmatch_pdg_ = -1;
             jet_genmatch_Nprongs_ = -1;
             jet_genmatch_bosonPt_ = -1;

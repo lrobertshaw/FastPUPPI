@@ -1,6 +1,14 @@
 import FWCore.ParameterSet.Config as cms
 from Configuration.StandardSequences.Eras import eras
 
+import os
+if os.path.exists("inputs140X.root"): os.remove("inputs140X.root")
+
+import sys
+inputFile = str(sys.argv[-2])
+nEvents = int(sys.argv[-1])
+print(f"\nRunning over file: {inputFile}\nNumber of events: {nEvents}\n")
+
 process = cms.Process("IN", eras.Phase2C17I13M9)
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('Configuration.Geometry.GeometryExtended2026D110Reco_cff')
@@ -23,22 +31,17 @@ process.load("RecoVertex.BeamSpotProducer.BeamSpot_cfi")
 process.load('L1Trigger.L1THGCal.hgcalTriggerPrimitives_cff')
 
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring(
-        # 'file:/data/cerminar/Phase2Spring23DIGIRECOMiniAOD/DoubleElectron_FlatPt-1To100-gun/GEN-SIM-DIGI-RAW-MINIAOD/PU200_Trk1GeV_131X_mcRun4_realistic_v5-v1/c699a773-9875-40c9-83b7-5a3c27f90bfd.root',
-        '/store/mc/Phase2Spring24DIGIRECOMiniAOD/TTToSemileptonic_TuneCP5_14TeV-powheg-pythia8/GEN-SIM-DIGI-RAW-MINIAOD/PU200_Trk1GeV_140X_mcRun4_realistic_v4-v2/2820000/5b6178a7-19bf-4f7f-af63-5bab03393e54.root',        
-        # '/store/mc/Phase2Spring23DIGIRECOMiniAOD/MinBias_TuneCP5_14TeV-pythia8/GEN-SIM-DIGI-RAW-MINIAOD/PU200_Trk1GeV_131X_mcRun4_realistic_v5-v1/30002/3b44d52d-1807-4a4f-9b9b-19466303a741.root',
-),
-
+    fileNames = cms.untracked.vstring(f"root://xrootd-cms.infn.it/{inputFile}"),
     inputCommands = cms.untracked.vstring(
         'keep *',
         # 'drop l1tPFJets_*_*_*',
         # 'drop l1tPFTaus_*_*_*',
         # 'drop l1tTrackerMuons_*_*_*',
-        'drop *_hlt*_*_HLT',
-        'drop triggerTriggerFilterObjectWithRefs_*_*_HLT'
+        # 'drop *_hlt*_*_HLT',
+        # 'drop triggerTriggerFilterObjectWithRefs_*_*_HLT'
     ),
 )
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(20))
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(nEvents))
 process.options = cms.untracked.PSet(
         wantSummary = cms.untracked.bool(True),
         numberOfThreads = cms.untracked.uint32(4),
@@ -58,6 +61,7 @@ process.PFInputsTask = cms.Task(
     process.TTTrackAssociatorFromPixelDigisExtended,
     process.SimL1EmulatorTask,
 #    process.l1tTkStubsGmt,
+
 )
 process.p = cms.Path(
         process.l1tLayer1 +
@@ -88,6 +92,7 @@ process.out = cms.OutputModule("PoolOutputModule",
             "keep *_simMuonRPCDigis_*_*",
             "keep *_simMuonGEMPadDigis_*_*",
             "keep *_simMuonGEMPadDigiClusters_*_*",
+            "keep *_simMuonGEMPadDigiProducer_*_*",
             "keep *_simDtTriggerPrimitiveDigis_*_*",
             "keep *_simCscTriggerPrimitiveDigis_*_*",
             "keep *_simTwinMuxDigis_*_*",
@@ -156,6 +161,13 @@ process.out = cms.OutputModule("PoolOutputModule",
 process.e = cms.EndPath(process.out)
 
 process.schedule = cms.Schedule([process.p,process.e])
+
+# SUPPRESS GEM ERROR:
+# %MSG-w GEMClusterProcessor:   CSCTriggerPrimitivesProducer:simCscTriggerPrimitiveDigisRun3  11-Jul-2025 13:10:29 CEST Run: 1 Event: 16420
+# Encountered unphysical GEM pads when making a single cluster, resetting cluster to empty.
+# %MSG-w GEMClusterProcessor:   CSCTriggerPrimitivesProducer:simCscTriggerPrimitiveDigis  11-Jul-2025 13:33:20 CEST Run: 1 Event: 15833
+# Encountered unphysical GEM pads when making a coincidence cluster, resetting cluster to empty.
+process.MessageLogger.cerr.GEMClusterProcessor = cms.untracked.PSet( limit = cms.untracked.int32(0) )
 
 process.out.outputCommands += [ "drop *_l1tHGCalVFEProducer_*_*", ]
 
